@@ -1,0 +1,32 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.18.1",
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.3.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "mongoose": "^9.7.3",
+    "pdfkit": "^0.19.1",
+    "svg-to-pdfkit": "^0.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/j-k-web/certification-portal-backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/j-k-web/certification-portal-backend/issues"
+  },
+  "homepage": "https://github.com/j-k-web/certification-portal-backend#readme",
+  "description": ""
+}
