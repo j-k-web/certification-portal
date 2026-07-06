@@ -86,56 +86,68 @@
 
   <script>
     async function fetchUsers() {
-      try {
-        const res = await fetch('/api/admin/users');
-        
-        if (res.status === 401) {
-          window.location.href = '/index.html';
-          return;
-        }
-
-        const response = await res.json();
-        
-        if (response.success) {
-          const tbody = document.getElementById('userTableBody');
-          tbody.innerHTML = ''; // Clear loading row
-
-          if (response.data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No users registered yet.</td></tr>`;
-            return;
-          }
-
-          response.data.forEach(user => {
-            const tr = document.createElement('tr');
-            
-            // Determine structural payment statuses dynamically
-            // (Uses the payment indicator flag tracked within schemas)
-            const isPaid = user.paid || false; 
-            const statusBadge = isPaid 
-              ? '<span class="badge paid">✅ Completed</span>' 
-              : '<span class="badge unpaid">⏳ Pending</span>';
-            const amountText = isPaid ? 'Ksh 150' : 'Ksh 0';
-
-            tr.innerHTML = `
-              <td><strong>${user.fullname}</strong></td>
-              <td>${user.email}</td>
-              <td>${user.phone || 'N/A'}</td>
-              <td>${user.specialization ? user.specialization.toUpperCase() : 'N/A'}</td>
-              <td>${statusBadge}</td>
-              <td><strong>${amountText}</strong></td>
-            `;
-            tbody.appendChild(tr);
-          });
-        } else {
-          document.getElementById('errorMessage').innerText = response.message;
-        }
-      } catch (err) {
-        document.getElementById('errorMessage').innerText = "❌ Error fetching directory lists: " + err.message;
-      }
+  try {
+    const res = await fetch('/api/admin/users');
+    
+    // Catch-all safety guard if you aren't logged in properly
+    if (res.status === 401 || res.status === 404) {
+      document.getElementById('errorMessage').innerText = `⚠️ Server returned status ${res.status}. Redirecting to login...`;
+      setTimeout(() => {
+        window.location.href = '/index.html';
+      }, 2000);
+      return;
     }
 
-    // Run fetch execution directly when content loads
-    window.onload = fetchUsers;
+    // Read response text first to debug safely
+    const textResponse = await res.text();
+    let response;
+    
+    try {
+      response = JSON.parse(textResponse);
+    } catch(parseErr) {
+      console.error("Server raw response was:", textResponse);
+      document.getElementById('errorMessage').innerText = `❌ Server didn't send JSON data. It sent: "${textResponse.substring(0, 60)}..."`;
+      return;
+    }
+    
+    if (response.success) {
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = ''; // Clear loading text
+
+      if (response.data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No users registered yet.</td></tr>`;
+        return;
+      }
+
+      response.data.forEach(user => {
+        const tr = document.createElement('tr');
+        
+        const isPaid = user.paid || false; 
+        const statusBadge = isPaid 
+          ? '<span class="badge paid">✅ Completed</span>' 
+          : '<span class="badge unpaid">⏳ Pending</span>';
+        const amountText = isPaid ? 'Ksh 150' : 'Ksh 0';
+
+        tr.innerHTML = `
+          <td><strong>${user.fullname}</strong></td>
+          <td>${user.email}</td>
+          <td>${user.phone || 'N/A'}</td>
+          <td>${user.specialization ? user.specialization.toUpperCase() : 'N/A'}</td>
+          <td>${statusBadge}</td>
+          <td><strong>${amountText}</strong></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } else {
+      document.getElementById('errorMessage').innerText = response.message;
+    }
+  } catch (err) {
+    document.getElementById('errorMessage').innerText = "❌ Error fetching directory lists: " + err.message;
+  }
+}
+
+// Run fetch execution directly when content loads
+window.onload = fetchUsers;
   </script>
 </body>
 </html>
