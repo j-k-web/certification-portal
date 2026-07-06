@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Registry Directory Management</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      background: #f4f6f9;
+      padding: 40px;
+      color: #2c3e50;
+    }
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      border-bottom: 3px solid #115201;
+      padding-bottom: 15px;
+    }
+    h1 { color: #115201; font-size: 32px; }
+    .back-btn {
+      padding: 10px 20px;
+      background: #2c3e50;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 18px;
+    }
+    .back-btn:hover { background: #1a252f; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      font-size: 20px;
+    }
+    th {
+      background-color: #2c3e50;
+      color: white;
+    }
+    tr:hover { background-color: #f9f9f9; }
+    .badge {
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .badge.paid { background: #d4edda; color: #155724; }
+    .badge.unpaid { background: #f8d7da; color: #721c24; }
+    #errorMessage { color: #c0392b; font-weight: bold; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="header-container">
+    <h1>👤 Registered Users & Payment Directory</h1>
+    <a href="/dashboard.html" class="back-btn">⬅️ Back to Dashboard</a>
+  </div>
+
+  <div id="errorMessage"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Full Name</th>
+        <th>Email Address</th>
+        <th>Phone Number</th>
+        <th>Specialization</th>
+        <th>Payment Status</th>
+        <th>Amount Paid</th>
+      </tr>
+    </thead>
+    <tbody id="userTableBody">
+      <tr>
+        <td colspan="6" style="text-align: center;">Loading user records from database...</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script>
+    async function fetchUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        
+        if (res.status === 401) {
+          window.location.href = '/index.html';
+          return;
+        }
+
+        const response = await res.json();
+        
+        if (response.success) {
+          const tbody = document.getElementById('userTableBody');
+          tbody.innerHTML = ''; // Clear loading row
+
+          if (response.data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No users registered yet.</td></tr>`;
+            return;
+          }
+
+          response.data.forEach(user => {
+            const tr = document.createElement('tr');
+            
+            // Determine structural payment statuses dynamically
+            // (Uses the payment indicator flag tracked within schemas)
+            const isPaid = user.paid || false; 
+            const statusBadge = isPaid 
+              ? '<span class="badge paid">✅ Completed</span>' 
+              : '<span class="badge unpaid">⏳ Pending</span>';
+            const amountText = isPaid ? 'Ksh 150' : 'Ksh 0';
+
+            tr.innerHTML = `
+              <td><strong>${user.fullname}</strong></td>
+              <td>${user.email}</td>
+              <td>${user.phone || 'N/A'}</td>
+              <td>${user.specialization ? user.specialization.toUpperCase() : 'N/A'}</td>
+              <td>${statusBadge}</td>
+              <td><strong>${amountText}</strong></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          document.getElementById('errorMessage').innerText = response.message;
+        }
+      } catch (err) {
+        document.getElementById('errorMessage').innerText = "❌ Error fetching directory lists: " + err.message;
+      }
+    }
+
+    // Run fetch execution directly when content loads
+    window.onload = fetchUsers;
+  </script>
+</body>
+</html>
