@@ -11,6 +11,9 @@ const User = require('./models/User');
 
 const app = express();
 
+// Render Reverse Proxy Trust (Crucial for secure session cookies on Render)
+app.set('trust proxy', 1);
+
 // Middleware (Native Express body parsing tools)
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -21,7 +24,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true if served over HTTPS
+    secure: process.env.NODE_ENV === 'production', // true if served over HTTPS on Render
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 2 // 2 Hours active session duration
   }
