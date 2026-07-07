@@ -9,7 +9,7 @@
 body, section, p, h1, h2, h3, h4, h5, h6, li {
   font-family: "Times New Roman", Times, serif;
   font-size: 24px;
-  line-height: 1.25; /* Reduced line height by ~70% of its extra vertical spacing for a tighter layout */
+  line-height: 1.25; 
   color: #2c3e50;
 }
 
@@ -35,23 +35,24 @@ body {
   padding: 0;
   margin: 0;
   
-  /* Solid Pinned Sidebar Fix: Keeps sidebar locked in place during main text scrolling */
+  /* Solid Pinned Sidebar Fix */
   position: sticky;
   top: 0;
   height: 100vh; 
-  overflow-y: auto; /* Adds a scrolling track inside the sidebar if buttons overflow vertically */
+  overflow-y: auto; 
 }
 
 .sidebar h2 {
   margin: 0;
   text-align: center;
   font-size: 24px;
-  padding: 10px 20px; /* Reduced vertical padding */
+  padding: 10px 20px; 
 }
 
-/* Sidebar Action Buttons & Group Buttons */
+/* 🟢 Uniform Sidebar Action Buttons 
+   All buttons now have identical styling, coloring, margins, and layouts */
 .sidebar button, .sidebar .btn {
-  padding: 8px 16px; /* Tighter padding vertically to reduce layout height */
+  padding: 8px 16px; 
   margin: 0; 
   background: #27ae60;
   color: #fff;
@@ -70,15 +71,9 @@ body {
   background: #219150;
 }
 
-/* 👥 Target Admin Button (Forces it flush to the bottom layout boundary) */
+/* Pushes the last item (Portal Audit) to the bottom while maintaining completely uniform styles */
 .sidebar button:last-child, .sidebar .btn:last-child {
   margin-top: auto;
-  background: #1e2d3b; /* Distinct dark color for system management */
-  border-top: 2px solid #34495e;
-}
-
-.sidebar button:last-child:hover, .sidebar .btn:last-child:hover {
-  background: #2c3e50;
 }
 
 /* Sidebar specialization groups */
@@ -112,7 +107,7 @@ section h2 {
   margin: 0 0 20px 0;
   color: #fff;
   background: #115201;
-  padding: 10px; /* Reduced padding from 15px */
+  padding: 10px; 
   text-align: center;
   border-radius: 0; 
   font-family: "Times New Roman", Times, serif;
@@ -136,7 +131,7 @@ section h2 {
 
 /* Home section styling */
 #home p {
-  margin-bottom: 15px; /* Tighter margins */
+  margin-bottom: 15px; 
   text-align: justify;
   font-size: 24px;
 }
