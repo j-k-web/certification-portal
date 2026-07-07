@@ -113,7 +113,7 @@ function ensureAuth(req, res, next) {
 }
 
 // 👑 STRICT ADMIN GUARD: Change this to your exact login email address
-const ADMIN_EMAIL = "your-admin-email@gmail.com"; 
+const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
 
 function ensureAdmin(req, res, next) {
   if (req.session.user && req.session.user.email === ADMIN_EMAIL) {
