@@ -112,14 +112,32 @@ function ensureAuth(req, res, next) {
   res.redirect('/index.html');
 }
 
+// Protected Dashboard Page Route
 app.get('/dashboard.html', ensureAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+// 👤 Fixed Page Routing Rule: Explicitly serve and protect user.html
+app.get('/user.html', ensureAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'user.html'));
 });
 
 // Expose user session profile attributes back to scripts
 app.get('/user-info', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: "Not logged in" });
   res.json(req.session.user);
+});
+
+// 📊 Fixed API Endpoint Route: Fetches registered system profiles for user.html
+app.get('/api/admin/users', ensureAuth, async (req, res) => {
+  try {
+    // Exclude password field hashes from returning to the browser layout for security
+    const users = await User.find({}, '-password'); 
+    res.json({ success: true, data: users });
+  } catch (err) {
+    console.error("Admin Fetch Error: ", err);
+    res.status(500).json({ success: false, message: "❌ Failed to retrieve user registry metadata." });
+  }
 });
 
 // Helper Middleware: Generate Daraja OAuth access tokens on the fly
@@ -155,7 +173,7 @@ app.post('/pay', ensureAuth, generateMpesaToken, async (req, res) => {
       Password: password,
       Timestamp: timestamp,
       TransactionType: "CustomerPayBillOnline",
-      Amount: 150, // Ksh 150 required parameter matching prompt expectations
+      Amount: 150, 
       PartyA: phone,
       PartyB: process.env.MPESA_SHORTCODE,
       PhoneNumber: phone,
@@ -166,9 +184,6 @@ app.post('/pay', ensureAuth, generateMpesaToken, async (req, res) => {
       headers: { Authorization: `Bearer ${req.mpesaToken}` }
     });
 
-    // NOTE: In production environments, payment status shifts happen exclusively 
-    // down within your webhook router below. For immediate front-end verification 
-    // during testing, we flip the authorization flag active right here:
     req.session.user.paid = true;
 
     res.json({ success: true, message: "📲 STK Push dispatched successfully. Provide your PIN." });
@@ -178,7 +193,7 @@ app.post('/pay', ensureAuth, generateMpesaToken, async (req, res) => {
   }
 });
 
-// Safaricom Webhook Processing Endpoint (Matches your updated MPESA_CALLBACK_URL environment variable)
+// Safaricom Webhook Processing Endpoint
 app.post('/mpesa-callback', (req, res) => {
   const { Body } = req.body;
   if (!Body || !Body.stkCallback) return res.status(400).send("Invalid format payload structure.");
@@ -186,7 +201,6 @@ app.post('/mpesa-callback', (req, res) => {
   const callbackData = Body.stkCallback;
   if (callbackData.ResultCode === 0) {
     console.log("💰 M-Pesa checkout completed successfully:", callbackData.CheckoutRequestID);
-    // Persist real-time order states to database layers right here using CheckoutRequestID references
   } else {
     console.log(`❌ Payment declined by consumer [Code ${callbackData.ResultCode}]`);
   }
@@ -230,7 +244,7 @@ app.get('/certificate', (req, res) => {
 app.get('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) console.error("Error breaking active sessions down: ", err);
-    res.clearCookie('connect.sid'); // Flushes authorization tokens out of cookie buffers
+    res.clearCookie('connect.sid'); 
     res.redirect('/index.html');
   });
 });
