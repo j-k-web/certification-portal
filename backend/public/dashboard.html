@@ -2554,7 +2554,6 @@
   <div id="paymentStatus"></div>
 </section>
 
-
 <script>
   // ==========================================
   // 🌐 GLOBAL CONFIGURATION & APP STATE
@@ -2711,7 +2710,7 @@
       document.getElementById("certMessage").innerHTML = 
         `<h3 style='color:green;'>🎉 Congratulations ${userName}! You achieved a passing metrics score of ${score}/${total} (${percentage}%).</h3>
          <p>Your user profile is now fully authorized for certification parameters in ${currentSpec.toUpperCase()}.</p>
-         <p>Please initiate the processing clearance fee of Ksh 150 to dispatch your secure PDF download link.</p>`;
+         <p>Please initiate the processing clearance fee of Ksh 200 to dispatch your secure PDF download link.</p>`; // 💵 Updated to Ksh 200
       
       document.getElementById("payButton").style.display = "inline-block";
       showSection('certification');
@@ -2737,7 +2736,7 @@
 
       const data = await response.json();
       document.getElementById("paymentStatus").innerHTML = 
-        "<p style='color:#e67e22; font-weight:bold;'>📲 STK Push broadcast completed. Check handset display for prompt input to finalize Ksh 150 clearance transaction...</p>";
+        "<p style='color:#e67e22; font-weight:bold;'>📲 STK Push broadcast completed. Check handset display for prompt input to finalize Ksh 200 clearance transaction...</p>"; // 💵 Updated to Ksh 200
 
       // Polling cycle to wait for confirmation response hook
       const checkPayment = async () => {

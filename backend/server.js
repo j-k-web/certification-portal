@@ -113,7 +113,7 @@ function ensureAuth(req, res, next) {
 }
 
 // 👑 STRICT ADMIN GUARD: Change this to your exact login email address
-const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
+const ADMIN_EMAIL = "your-admin-email@gmail.com"; 
 
 function ensureAdmin(req, res, next) {
   if (req.session.user && req.session.user.email === ADMIN_EMAIL) {
@@ -138,7 +138,7 @@ app.get('/user-info', (req, res) => {
   res.json(req.session.user);
 });
 
-// 📊 Admin-Only API Endpoint Route: Fetches database items for admin view only
+// 📊 Admin-Only API Endpoint Route: Fetches registered system profiles for user.html
 app.get('/api/admin/users', ensureAdmin, async (req, res) => {
   try {
     // Exclude password field hashes from returning to the browser layout for security
@@ -197,7 +197,7 @@ app.post('/pay', ensureAuth, generateMpesaToken, async (req, res) => {
       Password: password,
       Timestamp: timestamp,
       TransactionType: "CustomerPayBillOnline",
-      Amount: 150, 
+      Amount: 200, // 💵 Updated to Ksh 200
       PartyA: phone,
       PartyB: process.env.MPESA_SHORTCODE,
       PhoneNumber: phone,
@@ -234,7 +234,7 @@ app.post('/mpesa-callback', (req, res) => {
 // Safe PDF Layout Generator Route
 app.get('/certificate', (req, res) => {
   if (!req.session.user) return res.status(401).send("⚠️ Not logged in.");
-  if (!req.session.user.paid) return res.status(402).send("⚠️ Please pay Ksh 150 to unlock certificate.");
+  if (!req.session.user.paid) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); // 💵 Updated string to Ksh 200
 
   const { fullname, specialization } = req.session.user;
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
