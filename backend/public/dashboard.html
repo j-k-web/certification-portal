@@ -62,8 +62,7 @@
   <button onclick="showSection('certification')" class="btn">Certification</button>
 
   <!-- 👥 User Records Directory Button -->
-  <!-- Note: The styling distinguishes it visually from normal user navigation -->
-  <button onclick="window.location.href='/user.html'" class="btn" style="background: #1e2d3b; border-top: 2px solid #34495e; margin-top: auto;">User Registry</button>
+  <button onclick="window.location.href='/user.html'" class="btn">Portal Audit</button>
 </div>
 
  <div class="content">
@@ -2563,6 +2562,9 @@
   let currentSpec = "";
   let userName = "";
 
+  // 👑 STRICT ADMIN CONFIGURATION: Change this to match the exact email address inside server.js
+  const ADMIN_EMAIL = "your-admin-email@gmail.com"; 
+
   // ==========================================
   // ⚙️ UTILITY & INTERFACE STRIP FILTERS
   // ==========================================
@@ -2727,7 +2729,6 @@
     if (!phone) return;
 
     try {
-      // 🚀 Changed endpoint to relative path
       const response = await fetch("/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2740,14 +2741,12 @@
 
       // Polling cycle to wait for confirmation response hook
       const checkPayment = async () => {
-        // 🚀 Changed endpoint to relative path
         const res = await fetch("/certificate");
         
         if (res.ok) {
           document.getElementById("paymentStatus").innerHTML = 
             "<p style='color:green; font-weight:bold;'>✅ Verification complete! Digital processing cleared. Access granted below.</p>";
           
-          // Capture raw layout streams and compile them into local dynamic resource URL
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const link = document.getElementById("downloadLink");
@@ -2755,12 +2754,10 @@
           link.href = url;
           link.style.display = "inline-block";
         } else {
-          // Keep looping query lookups every 5 seconds until confirmed
           setTimeout(checkPayment, 5000);
         }
       };
       
-      // Start polling routine
       checkPayment();
 
     } catch (err) {
@@ -2778,8 +2775,26 @@
     
     if (name && spec) {
       setUserSpecialization(spec, name);
+      
+      // 👑 Dynamic Admin Verification: Check session attributes to securely render administrative button
+      fetch('/user-info')
+        .then(res => {
+          if (!res.ok) throw new Error("Unauthorized session access state.");
+          return res.json();
+        })
+        .then(user => {
+          if (user.email === ADMIN_EMAIL) {
+            const adminZone = document.getElementById('admin-zone');
+            if (adminZone) {
+              adminZone.innerHTML = `
+                <button onclick="window.location.href='/user.html'" class="btn">Portal Audit</button>
+              `;
+            }
+          }
+        })
+        .catch(err => console.error("Admin permission mapping skipped:", err));
+        
     } else {
-      // 🚀 Boot unauthorized traffic directly to home route
       window.location.href = "/index.html";
     }
   };

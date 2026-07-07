@@ -106,10 +106,20 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Protection Route Guard Middleware
+// Protection Route Guard Middleware (General Auth Check)
 function ensureAuth(req, res, next) {
   if (req.session.user) return next();
   res.redirect('/index.html');
+}
+
+// 👑 STRICT ADMIN GUARD: Change this to your exact login email address
+const ADMIN_EMAIL = "your-admin-email@gmail.com"; 
+
+function ensureAdmin(req, res, next) {
+  if (req.session.user && req.session.user.email === ADMIN_EMAIL) {
+    return next();
+  }
+  res.status(403).send("🚫 Access Denied: You do not have administrator permissions.");
 }
 
 // Protected Dashboard Page Route
@@ -117,8 +127,8 @@ app.get('/dashboard.html', ensureAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// 👤 Fixed Page Routing Rule: Explicitly serve and protect user.html
-app.get('/user.html', ensureAuth, (req, res) => {
+// 👥 Admin-Only Page Routing Rule: Only your email can load the file layout
+app.get('/user.html', ensureAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'user.html'));
 });
 
@@ -128,8 +138,8 @@ app.get('/user-info', (req, res) => {
   res.json(req.session.user);
 });
 
-// 📊 Fixed API Endpoint Route: Fetches registered system profiles for user.html
-app.get('/api/admin/users', ensureAuth, async (req, res) => {
+// 📊 Admin-Only API Endpoint Route: Fetches database items for admin view only
+app.get('/api/admin/users', ensureAdmin, async (req, res) => {
   try {
     // Exclude password field hashes from returning to the browser layout for security
     const users = await User.find({}, '-password'); 
@@ -137,6 +147,20 @@ app.get('/api/admin/users', ensureAuth, async (req, res) => {
   } catch (err) {
     console.error("Admin Fetch Error: ", err);
     res.status(500).json({ success: false, message: "❌ Failed to retrieve user registry metadata." });
+  }
+});
+
+// 🗑️ Admin-Only Delete Record Route: Drops entries cleanly using database IDs
+app.delete('/api/admin/users/:id', ensureAdmin, async (req, res) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    if (!deletedUser) {
+      return res.status(404).json({ success: false, message: "⚠️ User record not found." });
+    }
+    return res.json({ success: true, message: "🗑️ Entry permanently removed from database." });
+  } catch (err) {
+    console.error("Delete Action Error: ", err);
+    return res.status(500).json({ success: false, message: "❌ Failed to complete record removal." });
   }
 });
 
@@ -252,5 +276,5 @@ app.get('/logout', (req, res) => {
 // Start Server Loop
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log("🚀 Server running on port " + PORT);
 });
