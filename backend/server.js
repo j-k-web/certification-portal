@@ -112,8 +112,8 @@ function ensureAuth(req, res, next) {
   res.redirect('/index.html');
 }
 
-// 👑 STRICT ADMIN GUARD: Change this to your exact login email address
-const ADMIN_EMAIL = "your-admin-email@gmail.com"; 
+// 👑 STRICT ADMIN GUARD: Bound explicitly to your verified login details
+const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
 
 function ensureAdmin(req, res, next) {
   if (req.session.user && req.session.user.email === ADMIN_EMAIL) {
@@ -197,7 +197,7 @@ app.post('/pay', ensureAuth, generateMpesaToken, async (req, res) => {
       Password: password,
       Timestamp: timestamp,
       TransactionType: "CustomerPayBillOnline",
-      Amount: 200, // 💵 Updated to Ksh 200
+      Amount: 200, 
       PartyA: phone,
       PartyB: process.env.MPESA_SHORTCODE,
       PhoneNumber: phone,
@@ -234,7 +234,7 @@ app.post('/mpesa-callback', (req, res) => {
 // Safe PDF Layout Generator Route
 app.get('/certificate', (req, res) => {
   if (!req.session.user) return res.status(401).send("⚠️ Not logged in.");
-  if (!req.session.user.paid) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); // 💵 Updated string to Ksh 200
+  if (!req.session.user.paid) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
 
   const { fullname, specialization } = req.session.user;
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
