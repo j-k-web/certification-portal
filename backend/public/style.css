@@ -1,11 +1,12 @@
-/* Reset */
+/* ==========================================
+   🌐 GENERAL RESET & TYPOGRAPHY
+   ========================================== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Global text styling */
 body, section, p, h1, h2, h3, h4, h5, h6, li {
   font-family: "Times New Roman", Times, serif;
   font-size: 24px;
@@ -13,76 +14,123 @@ body, section, p, h1, h2, h3, h4, h5, h6, li {
   color: #2c3e50;
 }
 
-/* Layout Wrapper */
 body {
   display: flex;
+  flex-direction: column; /* Stacks the top navbar vertically above your content viewports */
   min-height: 100vh;
   background: #f4f6f9;
   width: 100%;
   overflow-x: hidden;
 }
 
-/* Sidebar Outer Container */
-.sidebar {
-  width: 250px;
-  min-width: 250px;
-  background: #2c3e50;
-  color: #fff;
-  flex-shrink: 0;
+/* ==========================================
+   🌐 THE NEW TOP NAVIGATION BAR
+   ========================================== */
+.top-navbar {
+  background-color: #2c3e50;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding: 0;
-  margin: 0;
-  
-  /* Solid Pinned Sidebar Fix */
+  align-items: center;
+  justify-content: space-between; /* Dynamically splits nav elements to opposite screen boundaries */
+  padding: 10px 20px;
   position: sticky;
   top: 0;
-  height: 100vh; 
-  overflow-y: auto; 
+  width: 100%;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
 }
 
-.sidebar h2 {
-  margin: 0;
-  text-align: center;
-  font-size: 24px;
-  padding: 10px 20px; 
+/* Groups home, dynamic training arrays, and certifications to the left side */
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-/* 🟢 Uniform Sidebar Action Buttons 
-   All buttons now have identical styling, coloring, margins, and layouts */
-.sidebar button, .sidebar .btn {
+/* Horizontal expansion parameters for internal specialization containers */
+.sidebar-group {
+  display: none; /* Keeps hidden collections off the screen until toggled */
+  align-items: center;
+  gap: 12px;
+}
+
+/* Override utility when inline layout styles change via JavaScript dynamic rendering */
+.sidebar-group[style*="display: flex"],
+.sidebar-group[style*="display: flex"] !important {
+  display: flex !important;
+  gap: 12px;
+}
+
+/* 🟢 Uniform Top Bar Action Buttons */
+.top-navbar button, 
+.top-navbar .nav-btn,
+.top-navbar .btn {
   padding: 8px 16px; 
   margin: 0; 
   background: #27ae60;
   color: #fff;
   border: none;
-  border-radius: 0; 
+  border-radius: 4px; /* Added slight rounding to fit modern top nav aesthetics smoothly */
   cursor: pointer;
   transition: background 0.3s;
   font-family: "Times New Roman", Times, serif;
   font-size: 24px;
   text-align: center;
-  width: 100%; 
-  display: block;
+  display: inline-block;
+  white-space: nowrap;
 }
 
-.sidebar button:hover, .sidebar .btn:hover {
+.top-navbar button:hover, 
+.top-navbar .nav-btn:hover,
+.top-navbar .btn:hover {
   background: #219150;
 }
 
-/* Pushes the last item (Portal Audit) to the bottom while maintaining completely uniform styles */
-.sidebar button:last-child, .sidebar .btn:last-child {
-  margin-top: auto;
+/* 👑 ADMIN & SECURITY SEGMENT ANCHORED FAR RIGHT */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-left: auto; /* Pushes the entire block right to isolate administrative operations */
 }
 
-/* Sidebar specialization groups */
-.sidebar-group {
-  display: none; 
-  width: 100%;
+/* Explicit high-visibility highlight overrides for the administrative button layout */
+.admin-btn {
+  background-color: #e67e22 !important;
+  color: white !important;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 24px;
+  transition: background 0.2s;
 }
 
-/* Main Display Panels Container */
+.admin-btn:hover {
+  background-color: #d35400 !important;
+}
+
+/* Red sign-out link positioning styles */
+.logout-btn {
+  background-color: #c0392b;
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 24px;
+  font-family: "Times New Roman", Times, serif;
+  transition: background 0.2s;
+  display: inline-block;
+}
+
+.logout-btn:hover {
+  background-color: #a93226;
+}
+
+/* ==========================================
+   📺 MAIN DISPLAY VIEW PANELS
+   ========================================== */
 .content {
   flex: 1; 
   width: 100%; 
@@ -92,7 +140,6 @@ body {
   margin: 0; 
 }
 
-/* Sections Configuration */
 section {
   display: none;
   width: 100%; 
@@ -102,7 +149,6 @@ section.active {
   display: block;
 }
 
-/* Section headings */
 section h2 {
   margin: 0 0 20px 0;
   color: #fff;
@@ -116,7 +162,6 @@ section h2 {
   width: 100%;
 }
 
-/* Moving heading effect */
 .moving-heading {
   display: inline-block;
   white-space: nowrap;
@@ -129,14 +174,62 @@ section h2 {
   100% { transform: translateX(-100%); }
 }
 
-/* Home section styling */
+/* ==========================================
+   🖼️ HOME PAGE BACKGROUND & GLASS CARD WORKSPACE
+   ========================================== */
+#home {
+  position: relative;
+  width: 100%;
+  min-height: 70vh;
+  padding: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  
+  /* Adds a smooth professional workspace background graphic image pattern */
+  background-image: linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15)), 
+                    url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1920');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  
+  /* Center-aligns the glass card within the workspace display profile bounds */
+  display: none; /* Keeps base fallback handling, toggled automatically via .active wrapper */
+  justify-content: center;
+  align-items: center;
+}
+
+#home.active {
+  display: flex !important;
+}
+
+/* 🧊 Dynamic Glassmorphism Clear Frosted Content Card */
+.home-glass-card {
+  background: rgba(255, 255, 255, 0.45); /* Highly polished translucent base filter tint layer */
+  backdrop-filter: blur(12px); /* Computes real-time blurring behind components */
+  -webkit-backdrop-filter: blur(12px); /* Safari engine performance hardware acceleration wrapper */
+  border: 1px solid rgba(255, 255, 255, 0.4); /* Refractive bounding perimeter borders */
+  padding: 40px;
+  border-radius: 12px;
+  max-width: 900px;
+  width: 100%;
+  box-shadow: 0 8px 32px 0 rgba(44, 62, 80, 0.25);
+}
+
 #home p {
   margin-bottom: 15px; 
   text-align: justify;
   font-size: 24px;
+  color: #1a252f; /* Deepened text contrast over glassy overlays for optimal readability */
+  text-shadow: 0 1px 1px rgba(255,255,255,0.5);
 }
 
-/* Training modules */
+#home p:last-child {
+  margin-bottom: 0;
+}
+
+/* ==========================================
+   📝 TRAINING & EXAMINATION SYSTEMS
+   ========================================== */
 .training-module {
   margin-bottom: 20px;
   width: 100%;
@@ -151,7 +244,6 @@ section h2 {
   margin-top: 8px;
 }
 
-/* Questions */
 .question {
   margin-bottom: 15px;
   width: 100%;
@@ -178,7 +270,6 @@ button.submit:hover {
   background: #1f6690;
 }
 
-/* Result */
 #result {
   margin-top: 15px;
   width: 100%;

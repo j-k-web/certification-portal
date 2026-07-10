@@ -6,67 +6,74 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="sidebar">
-  <!-- Home -->
-  <button onclick="showSection('home')" class="btn">Home</button>
+<!-- 🌐 HORIZONTAL TOP NAVIGATION BAR -->
+<header class="top-navbar">
+  <div class="nav-left">
+    <!-- Home button always visible -->
+    <button onclick="showSection('home')" class="nav-btn">Home</button>
 
-  <!-- Information Technology -->
-  <div id="sidebar-informationtechnology" class="sidebar-group">
-    <button onclick="showSection('informationtechnologyTraining')" class="btn">IT Training</button>
-    <button onclick="showSection('informationtechnologyQuestions')" class="btn">IT Questions</button>
+    <!-- Information Technology Links -->
+    <div id="sidebar-informationtechnology" class="sidebar-group" style="display:none;">
+      <button onclick="showSection('informationtechnologyTraining')" class="nav-btn">IT Training</button>
+      <button onclick="showSection('informationtechnologyQuestions')" class="nav-btn">IT Questions</button>
+    </div>
+
+    <!-- Finance Links -->
+    <div id="sidebar-finance" class="sidebar-group" style="display:none;">
+      <button onclick="showSection('financeTraining')" class="nav-btn">Finance Training</button>
+      <button onclick="showSection('financeQuestions')" class="nav-btn">Finance Questions</button>
+    </div>
+
+    <!-- Education Links -->
+    <div id="sidebar-education" class="sidebar-group" style="display:none;">
+      <button onclick="showSection('educationTraining')" class="nav-btn">Education Training</button>
+      <button onclick="showSection('educationQuestions')" class="nav-btn">Education Questions</button>
+    </div>
+
+    <!-- Healthcare Links -->
+    <div id="sidebar-healthcare" class="sidebar-group" style="display:none;">
+      <button onclick="showSection('healthcareTraining')" class="nav-btn">Healthcare Training</button>
+      <button onclick="showSection('healthcareQuestions')" class="nav-btn">Healthcare Questions</button>
+    </div>
+
+    <!-- Agriculture Links -->
+    <div id="sidebar-agriculture" class="sidebar-group" style="display:none;">
+      <button onclick="showSection('agricultureTraining')" class="nav-btn">Agriculture Training</button>
+      <button onclick="showSection('agricultureQuestions')" class="nav-btn">Agriculture Questions</button>
+    </div>
+
+    <!-- Engineering Links -->
+    <div id="sidebar-engineering" class="sidebar-group" style="display:none;">
+      <button onclick="showSection('engineeringTraining')" class="nav-btn">Engineering Training</button>
+      <button onclick="showSection('engineeringQuestions')" class="nav-btn">Engineering Questions</button>
+    </div>
+
+    <!-- Entrepreneurship Links -->
+    <div id="sidebar-entrepreneurship" class="sidebar-group" style="display:none;">
+      <button onclick="showSection('entrepreneurshipTraining')" class="nav-btn">Entrepreneurship Training</button>
+      <button onclick="showSection('entrepreneurshipQuestions')" class="nav-btn">Entrepreneurship Questions</button>
+    </div>
+
+    <!-- Environment Links -->
+    <div id="sidebar-environment" class="sidebar-group" style="display:none;">
+      <button onclick="showSection('environmentTraining')" class="nav-btn">Environment Training</button>
+      <button onclick="showSection('environmentQuestions')" class="nav-btn">Environment Questions</button>
+    </div>
+
+    <!-- Certification button always visible -->
+    <button onclick="showSection('certification')" class="nav-btn">Certification</button>
   </div>
 
-  <!-- Finance -->
-  <div id="sidebar-finance" class="sidebar-group">
-    <button onclick="showSection('financeTraining')" class="btn">Finance Training</button>
-    <button onclick="showSection('financeQuestions')" class="btn">Finance Questions</button>
+  <!-- 👑 ADMIN & USER CONTROL ZONE ON THE FAR RIGHT -->
+  <div class="nav-right">
+    <!-- This container will hold your dynamically rendered Portal Audit button -->
+    <div id="admin-zone"></div>
+    <a href="/logout" class="logout-btn">Sign Out</a>
   </div>
-
-  <!-- Education -->
-  <div id="sidebar-education" class="sidebar-group">
-    <button onclick="showSection('educationTraining')" class="btn">Education Training</button>
-    <button onclick="showSection('educationQuestions')" class="btn">Education Questions</button>
-  </div>
-
-  <!-- Healthcare -->
-  <div id="sidebar-healthcare" class="sidebar-group">
-    <button onclick="showSection('healthcareTraining')" class="btn">Healthcare Training</button>
-    <button onclick="showSection('healthcareQuestions')" class="btn">Healthcare Questions</button>
-  </div>
-
-  <!-- Agriculture -->
-  <div id="sidebar-agriculture" class="sidebar-group">
-    <button onclick="showSection('agricultureTraining')" class="btn">Agriculture Training</button>
-    <button onclick="showSection('agricultureQuestions')" class="btn">Agriculture Questions</button>
-  </div>
-
-  <!-- Engineering -->
-  <div id="sidebar-engineering" class="sidebar-group">
-    <button onclick="showSection('engineeringTraining')" class="btn">Engineering Training</button>
-    <button onclick="showSection('engineeringQuestions')" class="btn">Engineering Questions</button>
-  </div>
-
-  <!-- Entrepreneurship -->
-  <div id="sidebar-entrepreneurship" class="sidebar-group">
-    <button onclick="showSection('entrepreneurshipTraining')" class="btn">Entrepreneurship Training</button>
-    <button onclick="showSection('entrepreneurshipQuestions')" class="btn">Entrepreneurship Questions</button>
-  </div>
-
-  <!-- Environment -->
-  <div id="sidebar-environment" class="sidebar-group">
-    <button onclick="showSection('environmentTraining')" class="btn">Environment Training</button>
-    <button onclick="showSection('environmentQuestions')" class="btn">Environment Questions</button>
-  </div>
-
-  <!-- Universal Certification -->
-  <button onclick="showSection('certification')" class="btn">Certification</button>
-
-  <!-- 👥 User Records Directory Button -->
-  <button onclick="window.location.href='/user.html'" class="btn">Portal Audit</button>
-</div>
-
+</header>
  <div class="content">
-  <section id="home" class="section active">
+ <section id="home" class="section active">
+  <div class="home-glass-card">
     <h2 class="moving-heading">
       This is an opportunity to every youth in Kenya – Register if You Have Completed Secondary Education and Above
     </h2>
@@ -87,9 +94,9 @@
   
     <p>
       Your certificate is more than a document — it is your key passage to the upcoming 
-      <strong>National Training Program</strong> that will be held in every county on 
-      <strong>21st October this year</strong>. Only those with certificates will be eligible 
-      to participate in this nationwide initiative.
+      <strong>National Training Program</strong> that will be held in every county. This initiative 
+      is currently in process, and scheduling arrangements are actively underway. Only those with 
+      certificates will be eligible to participate in this nationwide initiative.
     </p>
   
     <p>
@@ -101,7 +108,7 @@
   
     <p>
       Once you have successfully answered the questions, you will be required to pay 
-      <strong>Ksh 150</strong> to unlock and download your certificate. This certificate 
+      <strong>Ksh 200</strong> to unlock and download your certificate. This certificate 
       is your personal copy and proof of achievement, marking your readiness to join 
       Kenya’s technological transformation journey.
     </p>
@@ -111,7 +118,8 @@
       <img src="cert33.png" alt="Kenyan youths receiving certificates" />
       <p class="caption"><em>the official launch of the youth commission</em></p>
     </div>
-  </section>
+  </div>
+</section>
 </div>
 
 
@@ -2615,7 +2623,7 @@
     // Reveal exclusively the registered workspace profile path
     const chosen = document.getElementById("sidebar-" + currentSpec);
     if (chosen) {
-      chosen.style.display = 'block';
+      chosen.style.display = 'flex';
     }
     showSection('home');
   }
@@ -2786,7 +2794,7 @@
             const adminZone = document.getElementById('admin-zone');
             if (adminZone) {
               adminZone.innerHTML = `
-                <button onclick="window.location.href='/user.html'" class="btn">Portal Audit</button>
+                <button onclick="window.location.href='/user.html'" class="admin-btn">Portal Audit</button>
               `;
             }
           }
