@@ -55,7 +55,7 @@ body {
 
 /* Override utility when inline layout styles change via JavaScript dynamic rendering */
 .sidebar-group[style*="display: flex"],
-.sidebar-group[style*="display: flex"] !important {
+.sidebar-group[style*="display: flex"]{
   display: flex !important;
   gap: 12px;
 }
@@ -187,7 +187,7 @@ section h2 {
   
   /* Adds a smooth professional workspace background graphic image pattern */
   background-image: linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15)), 
-                    url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1920');
+                    url('tao.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
