@@ -2533,33 +2533,33 @@
  <section id="certification" class="section">
   <h2>Certification</h2>
 
-  <!-- Quiz result + eligibility message -->
-  <div id="certMessage">Complete your quiz to unlock your certificate.</div>
+  <!-- 1. Quiz result + eligibility message -->
+  <div id="certMessage" style="margin-bottom: 20px;">
+    Complete your quiz to unlock your certificate.
+  </div>
 
-  <!-- Payment button (hidden until quiz is passed) -->
-  <button id="payButton" style="display:none;">Pay Ksh 150 to Unlock Certificate</button>
+  <!-- 2. Payment prompt info (Revealed when quiz is passed) -->
+  <div id="paymentPromptContainer" style="display: none; margin-top: 20px;">
+    <p style="margin-bottom: 20px; text-align: justify;">
+      Congratulations! You’ve qualified for your certificate. Your user profile is now fully authorized for certification parameters in 
+      <strong id="userCourse" style="text-transform: uppercase;">[Loading Course...]</strong>. 
+      To download it, please complete a one‑time processing clearance fee of <strong>Ksh 200</strong>. 
+      This payment confirms your participation in the National Youth Technology Program.
+    </p>
 
-  <!-- Payment status updates -->
-  <div id="paymentStatus"></div>
+    <!-- Unified payment button -->
+    <button id="certPayButton" class="submit">Pay Ksh 200 to Unlock Certificate</button>
+  </div>
 
-  <!-- Certificate download link (hidden until payment success) -->
-  <a id="downloadLink" href="#" class="download-btn" style="display:none;" download="certificate.pdf">
-    Download Your Certificate
-  </a>
-</section>
+  <!-- 3. Payment status updates -->
+  <div id="certPaymentStatus" style="margin-top: 15px; font-weight: bold;"></div>
 
-
-
-<section id="payment" class="section">
-  <h2>Certificate Payment</h2>
-  <p>
-    Congratulations! You’ve qualified for your certificate. To download it, please complete a one‑time payment of 
-    <strong>Ksh 150</strong>. This payment confirms your participation in the National Youth Technology Program.
-  </p>
-
-  <button id="payButton">Pay Ksh 150 to Unlock Certificate</button>
-
-  <div id="paymentStatus"></div>
+  <!-- 4. Certificate download link (hidden until payment success) -->
+  <div style="margin-top: 25px;">
+    <a id="downloadLink" href="#" class="download-btn" style="display: none; text-decoration: none;" download="certificate.pdf">
+      Download Your Certificate
+    </a>
+  </div>
 </section>
 
 <script>
