@@ -18,11 +18,7 @@ body {
   display: flex;
   flex-direction: column; 
   min-height: 100vh;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url('tao1.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: #f5f5f5; /* Plain background for all except Home */
   width: 100%;
   overflow-x: hidden;
 }
@@ -43,23 +39,22 @@ body {
   box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 
-/* Home button remains anchored independently on the left end edge */
 .nav-left {
   display: flex;
   align-items: center;
   flex: 1;
 }
 
-/* 🎯 Center-positioned Top Navigation Blocks (Training, Questions, Certification) */
+/* 🎯 Center-positioned Top Navigation Blocks */
 .top-nav-center {
-  display: flex; /* Force visible */
+  display: flex;
   align-items: center;
-  justify-content: center; /* Center horizontally */
-  gap: 40px; /* Increased spacing between buttons */
-  flex: 2; /* Wide central space */
+  justify-content: center;
+  gap: 40px;
+  flex: 2;
 }
 
-/* 🟢 Uniform Layout Buttons Style Configs */
+/* 🟢 Uniform Layout Buttons */
 .top-navbar button, 
 .top-navbar .nav-btn,
 .top-navbar .btn {
@@ -86,7 +81,6 @@ body {
   transform: translateY(-1px);
 }
 
-/* Explicit color code isolation layer targeting the Home Button container bounds */
 .nav-left button, .nav-left .btn {
   background: #27ae60 !important;
 }
@@ -94,7 +88,6 @@ body {
   background: #219150 !important;
 }
 
-/* 👑 ADMIN & LOGOUT ACTION UTILITIES ANCHORED STRICTLY FAR RIGHT */
 .nav-right {
   display: flex;
   align-items: center;
@@ -138,7 +131,7 @@ body {
 }
 
 /* ==========================================
-   📺 MAIN DISPLAY VIEW PANELS (90% Wide Card Workspace)
+   📺 MAIN DISPLAY VIEW PANELS
    ========================================== */
 .content {
   flex: 1; 
@@ -191,7 +184,7 @@ section h2 {
 }
 
 /* ==========================================
-   🖼️ HOME PAGE BACKGROUND & CARD REGISTRATION
+   🖼️ HOME PAGE BACKGROUND & CARD
    ========================================== */
 #home {
   width: 100%;
@@ -199,8 +192,7 @@ section h2 {
   border-radius: 8px;
   overflow: hidden;
   
-  /* Transparent overlay removed to reveal background image */
-  background: url('tao.png');
+  background-image: url('tao.png'); /* Background only for Home */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -216,12 +208,14 @@ section h2 {
   display: flex !important;
 }
 
+/* Semi-transparent card inside Home */
 .home-glass-card {
   width: 100%;
-  background: transparent; 
-  border: none;
-  padding: 0;
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
 }
 
 #home p {
@@ -235,7 +229,7 @@ section h2 {
   margin-bottom: 0;
 }
 
-#home img, .content img {
+#home img {
   display: block;
   width: 100%;
   max-height: 480px; 
@@ -246,7 +240,7 @@ section h2 {
 }
 
 /* ==========================================
-   🔑 AUTHENTICATION FORMS & FIELD STYLING
+   🔑 AUTHENTICATION FORMS
    ========================================== */
 input[type="email"],
 input[type="password"],
@@ -331,7 +325,7 @@ button.submit:hover {
    ========================================== */
 @media (max-width: 992px) {
   .top-nav-center {
-    gap: 20px; /* Reduce spacing on medium screens */
+    gap: 20px;
   }
   .top-navbar button,
   .top-navbar .nav-btn,
