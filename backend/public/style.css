@@ -200,7 +200,7 @@ section h2 {
   overflow: hidden;
   
   /* Transparent overlay removed to reveal background image */
-  background-image: url('tao.png');
+  background: url('tao.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
