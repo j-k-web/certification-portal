@@ -47,30 +47,16 @@ body {
 .nav-left {
   display: flex;
   align-items: center;
-  flex: 1; /* Provides balanced sizing bounds to help center the middle blocks */
+  flex: 1;
 }
 
 /* 🎯 Center-positioned Top Navigation Blocks (Training, Questions, Certification) */
 .top-nav-center {
-  display: none; 
+  display: flex; /* Force visible */
   align-items: center;
-  justify-content: center; /* Forces buttons directly to the true screen center */
-  gap: 30px; /* Strong, spacious gaps between Training, Questions, and Certification */
-  flex: 2; /* Dedicates the wide central screen space exclusively for these blocks */
-}
-
-/* Fallback structural handling for both old class properties and new naming layout systems */
-.sidebar-group, .top-nav-center {
-  justify-content: center;
-  gap: 30px;
-}
-
-.sidebar-group[style*="display: flex"],
-.sidebar-group[style*="display: flex"],
-.top-nav-center[style*="display: flex"],
-.top-nav-center[style*="display: flex"] {
-  display: flex !important;
-  gap: 30px; /* Retains wide spacious layout separation when rendered dynamically */
+  justify-content: center; /* Center horizontally */
+  gap: 40px; /* Increased spacing between buttons */
+  flex: 2; /* Wide central space */
 }
 
 /* 🟢 Uniform Layout Buttons Style Configs */
@@ -79,8 +65,8 @@ body {
 .top-navbar .btn {
   padding: 10px 22px; 
   margin: 0; 
-  background: #000000; /* Crisp uniform card black styling */
-  color: #ffffff; /* Explicit high contrast white typography text */
+  background: #000000;
+  color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 6px; 
   cursor: pointer;
@@ -102,7 +88,7 @@ body {
 
 /* Explicit color code isolation layer targeting the Home Button container bounds */
 .nav-left button, .nav-left .btn {
-  background: #27ae60 !important; /* Standout green branding identifier color for Home */
+  background: #27ae60 !important;
 }
 .nav-left button:hover, .nav-left .btn:hover {
   background: #219150 !important;
@@ -114,7 +100,7 @@ body {
   align-items: center;
   gap: 15px;
   flex: 1; 
-  justify-content: flex-end; /* Locks elements safely onto the rightmost perimeter wall */
+  justify-content: flex-end;
 }
 
 .admin-btn {
@@ -156,10 +142,10 @@ body {
    ========================================== */
 .content {
   flex: 1; 
-  width: 90%; /* Wide viewport design layout */
+  width: 90%;
   max-width: 1600px;
   margin: 30px auto; 
-  background: rgba(255, 255, 255, 0.85); /* Smooth frosted panel overlay layer */
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(8px); 
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -178,7 +164,6 @@ section.active {
   display: block;
 }
 
-/* Expanded marquee banner text header container wrapper elements */
 section h2 {
   margin: 0 0 25px 0;
   color: #fff;
@@ -189,7 +174,7 @@ section h2 {
   font-family: "Times New Roman", Times, serif;
   font-size: 26px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  width: 100%; /* Spans safely across the newly increased 90% viewable page card limits */
+  width: 100%;
   overflow: hidden; 
 }
 
@@ -214,8 +199,8 @@ section h2 {
   border-radius: 8px;
   overflow: hidden;
   
-  /* 🏞️ Dedicated home area background graphic configuration */
-  background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), url('tao.png');
+  /* Transparent overlay removed to reveal background image */
+  background-image: url('tao.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -231,7 +216,6 @@ section h2 {
   display: flex !important;
 }
 
-/* Completely transparent inner container configuration */
 .home-glass-card {
   width: 100%;
   background: transparent; 
@@ -251,7 +235,6 @@ section h2 {
   margin-bottom: 0;
 }
 
-/* Media graphic images presentation layout constraints */
 #home img, .content img {
   display: block;
   width: 100%;
@@ -338,4 +321,58 @@ button.submit:hover {
 #result {
   margin-top: 15px;
   width: 100%;
+  font-size: 22px;
+  color: #2c3e50;
+  font-weight: bold;
+}
+
+/* ==========================================
+   📱 RESPONSIVE ADJUSTMENTS
+   ========================================== */
+@media (max-width: 992px) {
+  .top-nav-center {
+    gap: 20px; /* Reduce spacing on medium screens */
+  }
+  .top-navbar button,
+  .top-navbar .nav-btn,
+  .top-navbar .btn,
+  .admin-btn,
+  .logout-btn {
+    font-size: 20px;
+    padding: 8px 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .top-navbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .top-nav-center {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 10px;
+  }
+  .nav-right {
+    justify-content: center;
+    margin-top: 10px;
+  }
+  .content {
+    width: 95%;
+    padding: 20px;
+  }
+  section h2 {
+    font-size: 22px;
+  }
+  input[type="email"],
+  input[type="password"],
+  input[type="text"],
+  input[type="tel"],
+  select {
+    font-size: 20px;
+  }
+  button.submit {
+    font-size: 20px;
+  }
 }
