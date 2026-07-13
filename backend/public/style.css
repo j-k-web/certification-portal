@@ -7,7 +7,7 @@
   box-sizing: border-box;
 }
 
-body, section, p, h1, h2, h3, h4, h5, h6, li {
+body, section, p, h1, h2, h3, h4, h5, h6, li, input, select, textarea {
   font-family: "Times New Roman", Times, serif;
   font-size: 24px;
   line-height: 1.25; 
@@ -55,7 +55,7 @@ body {
 
 /* Override utility when inline layout styles change via JavaScript dynamic rendering */
 .sidebar-group[style*="display: flex"],
-.sidebar-group[style*="display: flex"]{
+.sidebar-group[style*="display: flex"] {
   display: flex !important;
   gap: 12px;
 }
@@ -225,6 +225,42 @@ section h2 {
 
 #home p:last-child {
   margin-bottom: 0;
+}
+
+/* ==========================================
+   🔑 AUTHENTICATION FORMS & FIELD STYLING
+   ========================================== */
+input[type="email"],
+input[type="password"],
+input[type="text"],
+input[type="tel"],
+select {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0 20px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 24px; /* Matches explicit structural font sizing request */
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #27ae60;
+  box-shadow: 0 0 5px rgba(39, 174, 96, 0.3);
+}
+
+/* Form warning & error typography feedback elements */
+.error-text, 
+.alert-danger,
+#error-message {
+  color: #c0392b;
+  font-size: 20px;
+  margin-top: -10px;
+  margin-bottom: 15px;
+  display: block;
+  font-weight: bold;
 }
 
 /* ==========================================
