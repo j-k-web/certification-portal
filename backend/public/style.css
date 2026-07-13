@@ -242,7 +242,7 @@ select {
   border-radius: 4px;
   background-color: #fff;
   font-family: "Times New Roman", Times, serif;
-  font-size: 24px; /* Matches explicit structural font sizing request */
+  font-size: 24px; 
 }
 
 input:focus, select:focus {
