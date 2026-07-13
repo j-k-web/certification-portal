@@ -18,7 +18,7 @@ body {
   display: flex;
   flex-direction: column; 
   min-height: 100vh;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url('tao.png');
+  background-image: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url('tao1.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
