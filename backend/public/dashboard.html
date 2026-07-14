@@ -2530,37 +2530,44 @@
    <div id="result"></div>
 </section>
 
- <section id="certification" class="section">
-  <h2>Certification</h2>
+ <div class="content">
 
-  <!-- 1. Quiz result + eligibility message (This is the empty white space that will be filled by JS) -->
-  <div id="certMessage" style="margin-bottom: 20px;">
-    Complete your quiz to unlock your certificate.
-  </div>
+  <!-- ==========================================
+       🎓 CERTIFICATION SECTION (Inside the White Container)
+       ========================================== -->
+  <section id="certification" class="section">
+    <h2>Certification</h2>
 
-  <!-- 2. Payment details wrapper (Hidden until quiz passes) -->
-  <div id="paymentPromptContainer" style="display: none; margin-top: 20px;">
-    <p style="margin-bottom: 20px; text-align: justify;">
-      Congratulations! You’ve qualified for your certificate. Your user profile is now fully authorized for certification parameters in 
-      <strong id="userCourse" style="text-transform: uppercase;">[Loading Course...]</strong>. 
-      To download it, please complete a one‑time processing clearance fee of <strong>Ksh 200</strong>. 
-      This payment confirms your participation in the National Youth Technology Program.
-    </p>
+    <!-- 1. Quiz result + eligibility message (This is the empty white space that will be filled by JS) -->
+    <div id="certMessage" style="margin-bottom: 20px;">
+      Complete your quiz to unlock your certificate.
+    </div>
 
-    <!-- Keep original payButton ID for JS compatibility -->
-    <button id="payButton" class="submit">Pay Ksh 200 to Unlock Certificate</button>
-  </div>
+    <!-- 2. Payment details wrapper (Hidden until quiz passes) -->
+    <div id="paymentPromptContainer" style="display: none; margin-top: 20px;">
+      <p style="margin-bottom: 20px; text-align: justify;">
+        Congratulations! You’ve qualified for your certificate. Your user profile is now fully authorized for certification parameters in 
+        <strong id="userCourse" style="text-transform: uppercase;">[Loading Course...]</strong>. 
+        To download it, please complete a one‑time processing clearance fee of <strong>Ksh 200</strong>. 
+        This payment confirms your participation in the National Youth Technology Program.
+      </p>
 
-  <!-- 3. Keep original paymentStatus ID for JS compatibility -->
-  <div id="paymentStatus" style="margin-top: 15px; font-weight: bold;"></div>
+      <!-- Keep original payButton ID for JS compatibility -->
+      <button id="payButton" class="submit">Pay Ksh 200 to Unlock Certificate</button>
+    </div>
 
-  <!-- 4. Certificate download link -->
-  <div style="margin-top: 25px;">
-    <a id="downloadLink" href="#" class="download-btn" style="display: none; text-decoration: none;" download="certificate.pdf">
-      Download Your Certificate
-    </a>
-  </div>
-</section>
+    <!-- 3. Keep original paymentStatus ID for JS compatibility -->
+    <div id="paymentStatus" style="margin-top: 15px; font-weight: bold;"></div>
+
+    <!-- 4. Certificate download link -->
+    <div style="margin-top: 25px;">
+      <a id="downloadLink" href="#" class="download-btn" style="display: none; text-decoration: none;" download="certificate.pdf">
+        Download Your Certificate
+      </a>
+    </div>
+  </section>
+
+</div> <!-- 🟢 This closing div ensures everything above stays beautifully inside the white container card! -->
 <script>
   // ==========================================
   // 🌐 GLOBAL CONFIGURATION & APP STATE
