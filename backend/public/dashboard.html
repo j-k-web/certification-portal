@@ -2533,12 +2533,12 @@
  <section id="certification" class="section">
   <h2>Certification</h2>
 
-  <!-- 1. Quiz result + eligibility message -->
+  <!-- 1. Quiz result + eligibility message (This is the empty white space that will be filled by JS) -->
   <div id="certMessage" style="margin-bottom: 20px;">
     Complete your quiz to unlock your certificate.
   </div>
 
-  <!-- 2. Payment prompt info (Revealed when quiz is passed) -->
+  <!-- 2. Payment details wrapper (Hidden until quiz passes) -->
   <div id="paymentPromptContainer" style="display: none; margin-top: 20px;">
     <p style="margin-bottom: 20px; text-align: justify;">
       Congratulations! You’ve qualified for your certificate. Your user profile is now fully authorized for certification parameters in 
@@ -2547,21 +2547,20 @@
       This payment confirms your participation in the National Youth Technology Program.
     </p>
 
-    <!-- Unified payment button -->
-    <button id="certPayButton" class="submit">Pay Ksh 200 to Unlock Certificate</button>
+    <!-- Keep original payButton ID for JS compatibility -->
+    <button id="payButton" class="submit">Pay Ksh 200 to Unlock Certificate</button>
   </div>
 
-  <!-- 3. Payment status updates -->
-  <div id="certPaymentStatus" style="margin-top: 15px; font-weight: bold;"></div>
+  <!-- 3. Keep original paymentStatus ID for JS compatibility -->
+  <div id="paymentStatus" style="margin-top: 15px; font-weight: bold;"></div>
 
-  <!-- 4. Certificate download link (hidden until payment success) -->
+  <!-- 4. Certificate download link -->
   <div style="margin-top: 25px;">
     <a id="downloadLink" href="#" class="download-btn" style="display: none; text-decoration: none;" download="certificate.pdf">
       Download Your Certificate
     </a>
   </div>
 </section>
-
 <script>
   // ==========================================
   // 🌐 GLOBAL CONFIGURATION & APP STATE
@@ -2571,6 +2570,18 @@
 
   // 👑 STRICT ADMIN CONFIGURATION: Changed to your explicit admin registry profile address
   const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
+
+  // Mapping to convert technical ID names into clean titles for the screen
+  const specFriendlyNames = {
+    "informationtechnology": "Information Technology",
+    "finance": "Finance",
+    "education": "Education",
+    "healthcare": "Healthcare",
+    "agriculture": "Agriculture",
+    "engineering": "Engineering",
+    "entrepreneurship": "Entrepreneurship",
+    "environment": "Environmental Science"
+  };
 
   // ==========================================
   // ⚙️ UTILITY & INTERFACE STRIP FILTERS
@@ -2715,16 +2726,36 @@
     }
 
     if (percentage >= 50) {
+      // Get the clean user-friendly course specification name
+      const readableCourse = specFriendlyNames[currentSpec] || currentSpec.toUpperCase();
+      
+      // Update dynamic course span
+      const courseSpan = document.getElementById("userCourse");
+      if (courseSpan) {
+        courseSpan.textContent = readableCourse;
+      }
+
+      // Update success message inside certMessage block
       document.getElementById("certMessage").innerHTML = 
-        `<h3 style='color:green;'>🎉 Congratulations ${userName}! You achieved a passing metrics score of ${score}/${total} (${percentage}%).</h3>
-         <p>Your user profile is now fully authorized for certification parameters in ${currentSpec.toUpperCase()}.</p>
-         <p>Please initiate the processing clearance fee of Ksh 200 to dispatch your secure PDF download link.</p>`;
+        `<h3 style='color:green; margin-bottom: 10px;'>🎉 Congratulations ${userName}! You achieved a passing metrics score of ${score}/${total} (${percentage}%).</h3>`;
+      
+      // Unhide the dynamic payment prompt wrapper and reveal the pay button
+      const promptContainer = document.getElementById("paymentPromptContainer");
+      if (promptContainer) {
+        promptContainer.style.display = "block";
+      }
       
       document.getElementById("payButton").style.display = "inline-block";
       showSection('certification');
     } else {
       document.getElementById("certMessage").innerHTML = 
         `<h3 style='color:red;'>❌ Evaluation unsuccessful. Total score: ${score}/${total} (${percentage}%). Minimum metric required is 50%. Please re-evaluate.</h3>`;
+      
+      // Ensure payment prompt stays hidden if they fail
+      const promptContainer = document.getElementById("paymentPromptContainer");
+      if (promptContainer) {
+        promptContainer.style.display = "none";
+      }
     }
   }
 
