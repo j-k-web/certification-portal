@@ -18,17 +18,18 @@ body {
   display: flex;
   flex-direction: column; 
   min-height: 100vh;
-  /* 🎨 Default previous color for Training, Questions, Certification, etc. */
-  background-color: #f5f5f5; 
-  background-image: none;
+  background-color: #eef2f6;
   width: 100%;
   overflow-x: hidden;
-  transition: background 0.2s ease-in-out;
+  transition: background 0.3s ease-in-out;
 }
 
 /* 🏞️ Dynamically show the background image ONLY when the home section is active on the page */
 body:has(#home.active) {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), url('tao.png');
+  background-image:
+    linear-gradient(rgba(9, 28, 48, 0.4), rgba(9, 28, 48, 0.5)),
+    linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.18)),
+    url('tao.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -39,7 +40,7 @@ body:has(#home.active) {
    🌐 TOP NAVIGATION BAR
    ========================================== */
 .top-navbar {
-  background-color: #2c3e50;
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
   display: flex;
   align-items: center;
   justify-content: space-between; 
@@ -55,13 +56,14 @@ body:has(#home.active) {
   display: flex;
   align-items: center;
   flex: 1;
+  gap: 10px;
 }
 
 .top-nav-center, .sidebar-group {
   display: flex;
   align-items: center;
   justify-content: center; 
-  gap: 40px; 
+  gap: 20px; 
   flex: 2; 
 }
 
@@ -69,40 +71,42 @@ body:has(#home.active) {
 .sidebar-group[style*="display: flex"] {
   display: flex !important;
   justify-content: center !important;
-  gap: 40px !important;
+  gap: 20px !important;
 }
 
 .top-navbar button, 
 .top-navbar .nav-btn,
 .top-navbar .btn {
-  padding: 10px 22px; 
+  padding: 10px 18px; 
   margin: 0; 
-  background: #000000; 
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
   color: #ffffff; 
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 6px; 
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px; 
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   font-family: "Times New Roman", Times, serif;
-  font-size: 24px;
+  font-size: 22px;
   text-align: center;
   display: inline-block;
   white-space: nowrap;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  font-weight: 700;
 }
 
 .top-navbar button:hover, 
 .top-navbar .nav-btn:hover,
 .top-navbar .btn:hover {
-  background: #222222;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.28);
 }
 
 .nav-left button, .nav-left .btn {
-  background: #27ae60 !important;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
 }
 .nav-left button:hover, .nav-left .btn:hover {
-  background: #219150 !important;
+  background: linear-gradient(135deg, #1e40af, #1d4ed8) !important;
 }
 
 .nav-right {
@@ -114,37 +118,38 @@ body:has(#home.active) {
 }
 
 .admin-btn {
-  background-color: #e67e22 !important;
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
   color: white !important;
   border: none;
   padding: 10px 20px;
-  border-radius: 6px;
+  border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
   font-family: "Times New Roman", Times, serif;
-  font-size: 24px;
-  transition: background 0.2s;
+  font-size: 22px;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 .admin-btn:hover {
-  background-color: #d35400 !important;
+  background: linear-gradient(135deg, #ea580c, #c2410c) !important;
 }
 
 .logout-btn {
-  background-color: #c0392b;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
   color: white;
   text-decoration: none;
   padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 24px;
+  border-radius: 10px;
+  font-size: 22px;
   font-family: "Times New Roman", Times, serif;
-  transition: background 0.2s;
+  transition: all 0.2s ease-in-out;
   display: inline-block;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
 }
 
 .logout-btn:hover {
-  background-color: #a93226;
+  background: linear-gradient(135deg, #b91c1c, #991b1b);
 }
 
 /* ==========================================
@@ -155,15 +160,13 @@ body:has(#home.active) {
   width: 90%; 
   max-width: 1600px;
   margin: 30px auto; 
-  
-  /* 🧊 Plain transparent white panel overlay without internal images stacked underneath */
-  background: rgba(255, 255, 255, 0.85); 
-  backdrop-filter: blur(8px); 
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 18px;
   padding: 35px; 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.18);
   overflow-y: auto;
 }
 
@@ -178,16 +181,17 @@ section.active {
 
 section h2 {
   margin: 0 0 25px 0;
-  color: #fff;
-  background: #115201;
-  padding: 12px 0; 
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f6d0f, #1d9a31);
+  padding: 14px 24px; 
   text-align: center;
-  border-radius: 6px; 
+  border-radius: 10px; 
   font-family: "Times New Roman", Times, serif;
-  font-size: 26px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  font-size: 28px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
   width: 100%;
   overflow: hidden; 
+  letter-spacing: 0.02em;
 }
 
 .moving-heading {
@@ -203,7 +207,7 @@ section h2 {
 }
 
 /* ==========================================
-   🖼️ HOME SECTION (Left untouched)
+   🖼️ HOME SECTION (Hero area)
    ========================================== */
 #home {
   width: 100%;
@@ -219,21 +223,33 @@ section h2 {
 
 .home-glass-card {
   width: 100%;
-  background: transparent; 
-  border: none;
-  padding: 0;
-  box-shadow: none;
+  background: linear-gradient(135deg, rgba(14, 48, 79, 0.72), rgba(41, 128, 111, 0.58));
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 18px 45px rgba(0,0,0,0.24);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
 #home p {
   margin-bottom: 20px; 
   text-align: justify;
   font-size: 24px;
-  color: #2c3e50; 
+  color: #fdfdfd;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+
+#home strong {
+  color: #fef08a;
 }
 
 #home p:last-child {
   margin-bottom: 0;
+}
+
+.home-image {
+  margin-top: 24px;
 }
 
 #home img, .content img {
@@ -241,9 +257,91 @@ section h2 {
   width: 100%;
   max-height: 480px; 
   object-fit: cover; 
-  border-radius: 8px;
+  border-radius: 14px;
   margin: 25px auto 0 auto;
-  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+}
+
+.caption {
+  margin-top: 10px;
+  color: #f5f5f5 !important;
+  font-size: 20px !important;
+  text-align: center !important;
+}
+
+/* ==========================================
+   🧾 CERTIFICATION CARD
+   ========================================== */
+.certification-card {
+  background: linear-gradient(135deg, rgba(233, 245, 255, 0.96), rgba(239, 253, 246, 0.96));
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 14px 34px rgba(13, 64, 87, 0.12);
+}
+
+.certification-status,
+.payment-status {
+  margin-bottom: 18px;
+  font-size: 22px;
+}
+
+.payment-prompt-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.payment-prompt-card p {
+  margin-bottom: 18px;
+  text-align: justify;
+  font-size: 22px;
+}
+
+.certificate-preview-shell {
+  margin-top: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.certificate-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  font-weight: bold;
+  color: #0f172a;
+}
+
+.download-btn {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #ffffff;
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.download-btn:hover {
+  background: linear-gradient(135deg, #15803d, #166534);
+}
+
+#certificatePreview {
+  width: 100%;
+  min-height: 560px;
+  border: none;
+  border-radius: 12px;
+  background: #f8fafc;
 }
 
 /* ==========================================
@@ -304,19 +402,20 @@ input:focus, select:focus {
 }
 
 button.submit {
-  background: #2980b9;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   margin-top: 15px;
   padding: 10px 20px;
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.3s;
-  font-size: 24px;
+  transition: all 0.2s ease-in-out;
+  font-size: 22px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 button.submit:hover {
-  background: #1f6690;
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
 }
 
 #result {
@@ -341,6 +440,10 @@ button.submit:hover {
   .logout-btn {
     font-size: 20px;
     padding: 8px 16px;
+  }
+  .certificate-preview-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -375,5 +478,11 @@ button.submit:hover {
   }
   button.submit {
     font-size: 20px;
+  }
+  #home p {
+    font-size: 20px;
+  }
+  #certificatePreview {
+    min-height: 420px;
   }
 }

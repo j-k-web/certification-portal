@@ -787,10 +787,11 @@
       <label><input type="radio" name="q20" value="D"> D. Robotics</label>
     </div>
 
-    <button type="button" class="submit" onclick="submitQuiz('Healthcare')">Submit</button>
+    <button type="button" onclick="submitQuiz('Healthcare')">Submit Quiz</button>
   </form>
   <div id="result"></div>
 </section>
+
 
 <!-- Finance Training Section -->
 <section id="financeTraining" class="section">
@@ -2131,6 +2132,7 @@
       <label><input type="radio" name="q5" value="C"> C. Farming tools</label><br>
       <label><input type="radio" name="q5" value="D"> D. Driving lessons</label>
     </div>
+
     <div class="question"><p>6. What are sales techniques?</p>
       <label><input type="radio" name="q6" value="A"> A. Methods to convert leads into customers</label><br>
       <label><input type="radio" name="q6" value="B"> B. Cooking recipes</label><br>
@@ -2473,7 +2475,7 @@
       <label><input type="radio" name="q13" value="A"> A. Eco-friendly city planning</label><br>
       <label><input type="radio" name="q13" value="B"> B. Cooking recipes</label><br>
       <label><input type="radio" name="q13" value="C"> C. Farming tools</label><br>
-      <label><input type="radio" name="q13" value="D"> D. Driving lessons</label>
+      <label><input type="radio" name="q13" value="D"> D. Driving simulators</label>
     </div>
 
     <div class="question"><p>14. What is environmental economics?</p>
@@ -2538,32 +2540,33 @@
   <section id="certification" class="section">
     <h2>Certification</h2>
 
-    <!-- 1. Quiz result + eligibility message (This is the empty white space that will be filled by JS) -->
-    <div id="certMessage" style="margin-bottom: 20px;">
-      Complete your quiz to unlock your certificate.
-    </div>
+    <div class="certification-card">
+      <div id="certMessage" class="certification-status">
+        Complete your quiz to unlock your certificate.
+      </div>
 
-    <!-- 2. Payment details wrapper (Hidden until quiz passes) -->
-    <div id="paymentPromptContainer" style="display: none; margin-top: 20px;">
-      <p style="margin-bottom: 20px; text-align: justify;">
-        Congratulations! You’ve qualified for your certificate. Your user profile is now fully authorized for certification parameters in 
-        <strong id="userCourse" style="text-transform: uppercase;">[Loading Course...]</strong>. 
-        To download it, please complete a one‑time processing clearance fee of <strong>Ksh 200</strong>. 
-        This payment confirms your participation in the National Youth Technology Program.
-      </p>
+      <div id="paymentPromptContainer" class="payment-prompt-card" style="display: none;">
+        <p>
+          Congratulations! You’ve qualified for your certificate. Your user profile is now fully authorized for certification parameters in
+          <strong id="userCourse" style="text-transform: uppercase;">[Loading Course...]</strong>.
+          To download it, please complete a one-time processing clearance fee of <strong>Ksh 200</strong>.
+          This payment confirms your participation in the National Youth Technology Program.
+        </p>
 
-      <!-- Keep original payButton ID for JS compatibility -->
-      <button id="payButton" class="submit">Pay Ksh 200 to Unlock Certificate</button>
-    </div>
+        <button id="payButton" class="submit">Pay Ksh 200 to Unlock Certificate</button>
+      </div>
 
-    <!-- 3. Keep original paymentStatus ID for JS compatibility -->
-    <div id="paymentStatus" style="margin-top: 15px; font-weight: bold;"></div>
+      <div id="paymentStatus" class="payment-status"></div>
 
-    <!-- 4. Certificate download link -->
-    <div style="margin-top: 25px;">
-      <a id="downloadLink" href="#" class="download-btn" style="display: none; text-decoration: none;" download="certificate.pdf">
-        Download Your Certificate
-      </a>
+      <div id="certificatePreviewShell" class="certificate-preview-shell" style="display: none;">
+        <div class="certificate-preview-head">
+          <span>Certificate Preview</span>
+          <a id="downloadLink" href="#" class="download-btn" style="display: none;" download="certificate.pdf">
+            Download Certificate
+          </a>
+        </div>
+        <iframe id="certificatePreview" title="Certificate Preview" src="about:blank"></iframe>
+      </div>
     </div>
   </section>
 
@@ -2795,9 +2798,13 @@
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const link = document.getElementById("downloadLink");
+          const previewShell = document.getElementById("certificatePreviewShell");
+          const previewFrame = document.getElementById("certificatePreview");
           
           link.href = url;
-          link.style.display = "inline-block";
+          link.style.display = "inline-flex";
+          previewFrame.src = url;
+          previewShell.style.display = "block";
         } else {
           setTimeout(checkPayment, 5000);
         }
@@ -2814,35 +2821,9 @@
   // ==========================================
   // 🔒 INITIALIZATION & ROUTE SECURITY
   // ==========================================
-  window.onload = function() {
-    const name = sessionStorage.getItem("loginName");
-    const spec = sessionStorage.getItem("loginSpec");
-    
-    if (name && spec) {
-      setUserSpecialization(spec, name);
-      
-      // 👑 Dynamic Admin Verification: Check session attributes to securely render administrative button
-      fetch('/user-info')
-        .then(res => {
-          if (!res.ok) throw new Error("Unauthorized session access state.");
-          return res.json();
-        })
-        .then(user => {
-          if (user.email === ADMIN_EMAIL) {
-            const adminZone = document.getElementById('admin-zone');
-            if (adminZone) {
-              adminZone.innerHTML = `
-                <button onclick="window.location.href='/user.html'" class="admin-btn">Portal Audit</button>
-              `;
-            }
-          }
-        })
-        .catch(err => console.error("Admin permission mapping skipped:", err));
-        
-    } else {
-      window.location.href = "/index.html";
-    }
-  };
+  document.addEventListener("DOMContentLoaded", () => {
+    showSection('home');
+  });
 </script>
 </body>
 </html>
