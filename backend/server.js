@@ -289,7 +289,7 @@ app.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
     await user.save();
 
-    const mailResult = await sendPasswordResetEmail(user.email, resetToken);
+    const mailResult = await sendPasswordResetEmail(user.email, resetToken, req);
 
     return res.json({
       success: true,
@@ -356,8 +356,9 @@ function createEmailTransporter() {
 }
 
 // Password reset email sending function
-async function sendPasswordResetEmail(userEmail, token) {
-  const resetUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/reset.html?token=${token}`;
+async function sendPasswordResetEmail(userEmail, token, req) {
+  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const resetUrl = `${baseUrl}/reset.html?token=${token}`;
   const transporter = createEmailTransporter();
 
   if (!transporter) {
