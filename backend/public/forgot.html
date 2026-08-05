@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Forgot Password</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: url('pic2.png') no-repeat center center fixed;
+      background-size: cover;
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      width: 380px;
+      text-align: center;
+    }
+    .container h2 { margin-bottom: 20px; font-size: 24px; color: #2c3e50; }
+    .container input {
+      width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
+    }
+    .container button {
+      width: 100%; padding: 12px; background: #27ae60; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;
+    }
+    .container button:hover { background: #219150; }
+    .link { margin-top: 15px; font-size: 14px; color: #555; }
+    .link a { color: #27ae60; text-decoration: none; }
+    .link a:hover { text-decoration: underline; }
+    #forgotMessage { margin-top: 12px; font-size: 14px; }
+    .debug-link {
+      display: block;
+      margin-top: 10px;
+      word-break: break-all;
+      color: #1b4f72;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Forgot Password</h2>
+    <form id="forgotForm">
+      <input type="email" id="forgotEmail" placeholder="Enter your email" required>
+      <button type="submit">Send Reset Link</button>
+    </form>
+    <div id="forgotMessage"></div>
+    <a id="debugLink" class="debug-link" href="#" target="_blank" rel="noopener"></a>
+    <div class="link">
+      <p><a href="index.html">Back to login</a></p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('forgotForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const email = document.getElementById('forgotEmail').value.trim();
+      const messageBox = document.getElementById('forgotMessage');
+      const debugLink = document.getElementById('debugLink');
+
+      messageBox.style.color = 'black';
+      messageBox.innerText = '⏳ Sending reset request...';
+      debugLink.innerText = '';
+      debugLink.href = '#';
+
+      try {
+        const res = await fetch('/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const response = await res.json();
+        messageBox.style.color = '#27ae60';
+        messageBox.innerText = response.message;
+
+        if (response.debugResetLink) {
+          debugLink.style.display = 'block';
+          debugLink.innerText = 'Reset link (debug/test mode): ' + response.debugResetLink;
+          debugLink.href = response.debugResetLink;
+        } else {
+          debugLink.style.display = 'none';
+        }
+      } catch (err) {
+        messageBox.style.color = '#c0392b';
+        messageBox.innerText = '❌ Failed to send reset request: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

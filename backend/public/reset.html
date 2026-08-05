@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reset Password</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: url('pic2.png') no-repeat center center fixed;
+      background-size: cover;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      width: 380px;
+      text-align: center;
+    }
+    .container h2 { margin-bottom: 20px; font-size: 24px; color: #2c3e50; }
+    .password-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .password-wrap input {
+      width: 100%; padding: 12px; margin: 10px 0; padding-right: 44px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .container button {
+      width: 100%; padding: 12px; background: #27ae60; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;
+    }
+    .container button:hover { background: #219150; }
+    #resetMessage { margin-top: 12px; font-size: 14px; }
+    .link { margin-top: 15px; font-size: 14px; color: #555; }
+    .link a { color: #27ae60; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Reset Password</h2>
+    <form id="resetForm">
+      <div class="password-wrap">
+        <input type="password" id="newPassword" placeholder="New password" required>
+        <button type="button" class="toggle-password" data-target="newPassword" aria-label="Show password">👁</button>
+      </div>
+      <div class="password-wrap">
+        <input type="password" id="confirmPassword" placeholder="Confirm password" required>
+        <button type="button" class="toggle-password" data-target="confirmPassword" aria-label="Show password">👁</button>
+      </div>
+      <button type="submit">Update Password</button>
+    </form>
+    <div id="resetMessage"></div>
+    <div class="link">
+      <p><a href="index.html">Back to login</a></p>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    document.querySelectorAll('.toggle-password').forEach(function(button) {
+      button.addEventListener('click', function() {
+        const target = document.getElementById(button.dataset.target);
+        const isHidden = target.type === 'password';
+        target.type = isHidden ? 'text' : 'password';
+        button.textContent = isHidden ? '🙈' : '👁';
+        button.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      });
+    });
+
+    document.getElementById('resetForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const messageBox = document.getElementById('resetMessage');
+
+      if (newPassword !== confirmPassword) {
+        messageBox.style.color = '#c0392b';
+        messageBox.innerText = '⚠️ Passwords do not match.';
+        return;
+      }
+
+      if (!token) {
+        messageBox.style.color = '#c0392b';
+        messageBox.innerText = '⚠️ Missing reset token.';
+        return;
+      }
+
+      messageBox.style.color = 'black';
+      messageBox.innerText = '⏳ Updating your password...';
+
+      try {
+        const res = await fetch('/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password: newPassword })
+        });
+
+        const response = await res.json();
+        if (response.success) {
+          messageBox.style.color = '#27ae60';
+          messageBox.innerText = response.message;
+          setTimeout(() => {
+            window.location.href = '/index.html';
+          }, 1200);
+        } else {
+          messageBox.style.color = '#c0392b';
+          messageBox.innerText = response.message;
+        }
+      } catch (err) {
+        messageBox.style.color = '#c0392b';
+        messageBox.innerText = '❌ Reset failed: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

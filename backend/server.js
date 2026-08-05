@@ -4,6 +4,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const bcrypt = require('bcryptjs'); // Encrypts passwords before database entry
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const session = require('express-session');
 const axios = require('axios');
@@ -263,6 +265,128 @@ app.get('/certificate', (req, res) => {
     }
   }
 });
+
+// Password Reset Request Handler
+app.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const sanitizedEmail = String(email || '').toLowerCase().trim();
+    if (!sanitizedEmail) {
+      return res.status(400).json({ success: false, message: '⚠️ Email is required.' });
+    }
+
+    const user = await User.findOne({ email: sanitizedEmail });
+    if (!user) {
+      return res.json({
+        success: true,
+        message: '✅ If an account exists for that email, a password reset link has been sent.'
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
+    await user.save();
+
+    const mailResult = await sendPasswordResetEmail(user.email, resetToken);
+
+    return res.json({
+      success: true,
+      message: '✅ If an account exists for that email, a password reset link has been sent.',
+      debugResetLink: mailResult.debugResetLink,
+      emailConfigured: mailResult.success
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ success: false, message: '❌ Unable to process password reset request.' });
+  }
+});
+
+// Password Reset Form Token Validation & New Password Submission
+app.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+
+  try {
+    if (!token || !password) {
+      return res.status(400).json({ success: false, message: '⚠️ Token and new password are required.' });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: '⚠️ Password reset token is invalid or has expired.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res.json({ success: true, message: '✅ Password reset successful. You can now login with your new password.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({ success: false, message: '❌ Failed to reset password.' });
+  }
+});
+
+// Email transporter setup for password reset
+function createEmailTransporter() {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: smtpHost,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: Number(process.env.SMTP_PORT || 587) === 465,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    }
+  });
+}
+
+// Password reset email sending function
+async function sendPasswordResetEmail(userEmail, token) {
+  const resetUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/reset.html?token=${token}`;
+  const transporter = createEmailTransporter();
+
+  if (!transporter) {
+    return {
+      success: false,
+      debugResetLink: resetUrl,
+      message: 'SMTP email delivery is not configured yet. Use the debug reset link shown in the response during testing.'
+    };
+  }
+
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: userEmail,
+      subject: 'Password Reset Request',
+      text: `Use this link to reset your password: ${resetUrl}`,
+      html: `<p>Use this link to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
+    });
+
+    return { success: true, debugResetLink: resetUrl };
+  } catch (err) {
+    console.error('Email send error:', err);
+    return {
+      success: false,
+      debugResetLink: resetUrl,
+      message: 'Failed to send email. Please use the debug reset link shown during testing.'
+    };
+  }
+}
 
 // Session teardown route
 app.get('/logout', (req, res) => {

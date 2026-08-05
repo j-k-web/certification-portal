@@ -22,6 +22,23 @@
       width: 100%; padding: 12px; margin: 10px 0;
       border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
     }
+    .password-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .password-wrap input {
+      padding-right: 44px;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 16px;
+    }
     .container button {
       width: 100%; padding: 12px; background: #27ae60; color: #fff;
       border: none; border-radius: 6px; font-size: 16px; cursor: pointer;
@@ -39,17 +56,30 @@
     <h2>Login</h2>
     <form id="loginForm">
       <input type="email" id="loginEmail" placeholder="Email" required>
-      <input type="password" id="loginPassword" placeholder="Password" required>
+      <div class="password-wrap">
+        <input type="password" id="loginPassword" placeholder="Password" required>
+        <button type="button" class="toggle-password" data-target="loginPassword" aria-label="Show password">👁</button>
+      </div>
       <button type="submit">Login</button>
     </form>
     <div id="loginMessage"></div>
     <div class="link">
       <p>Not registered? <a href="register.html">Click here to register</a></p>
+      <p style="margin-top: 10px;">Forgot password? <a href="forgot.html">Reset it here</a></p>
     </div>
   </div>
 
   <script>
-    // Correctly targets the login form visible on this page
+    document.querySelectorAll('.toggle-password').forEach(function(button) {
+      button.addEventListener('click', function() {
+        const target = document.getElementById(button.dataset.target);
+        const isHidden = target.type === 'password';
+        target.type = isHidden ? 'text' : 'password';
+        button.textContent = isHidden ? '🙈' : '👁';
+        button.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      });
+    });
+
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
@@ -74,12 +104,8 @@
         if (response.success) {
           msgElement.style.color = "#27ae60";
           msgElement.innerText = "✅ Login successful! Redirecting...";
-          
-          // Save session configurations into browser memory for dashboard usage
           sessionStorage.setItem("loginName", response.fullname);
           sessionStorage.setItem("loginSpec", response.specialization);
-
-          // Bounce straight to dashboard
           setTimeout(() => {
             window.location.href = "/dashboard.html";
           }, 1000);
