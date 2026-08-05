@@ -24,6 +24,18 @@ body {
   transition: background 0.3s ease-in-out;
 }
 
+/* 🏞️ Dynamically show the background image ONLY when the home section is active on the page */
+body:has(#home.active) {
+  background-image:
+    linear-gradient(rgba(9, 28, 48, 0.4), rgba(9, 28, 48, 0.5)),
+    linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.18)),
+    url('tao.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 /* ==========================================
    🌐 TOP NAVIGATION BAR
    ========================================== */

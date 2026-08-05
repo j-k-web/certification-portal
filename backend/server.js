@@ -80,7 +80,32 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const sanitizedEmail = email.toLowerCase().trim();
+    const sanitizedEmail = String(email || '').toLowerCase().trim();
+    const normalizedAdminEmail = sanitizedEmail.replace(/\s+/g, '');
+    const adminAlias = 'joshuakalte088@gmail';
+
+    if (
+      (normalizedAdminEmail === ADMIN_EMAIL || normalizedAdminEmail === adminAlias) &&
+      password === ADMIN_PASSWORD
+    ) {
+      req.session.user = {
+        id: 'admin',
+        fullname: 'System Administrator',
+        specialization: 'Information Technology',
+        email: ADMIN_EMAIL,
+        paid: true,
+        isAdmin: true
+      };
+
+      return res.json({
+        success: true,
+        message: '✅ Admin login successful',
+        fullname: 'System Administrator',
+        specialization: 'Information Technology',
+        isAdmin: true
+      });
+    }
+
     const user = await User.findOne({ email: sanitizedEmail });
     if (!user) return res.status(401).json({ success: false, message: '⚠️ Invalid credentials.' });
 
@@ -93,17 +118,19 @@ app.post('/login', async (req, res) => {
       fullname: user.fullname,
       specialization: user.specialization,
       email: user.email,
-      paid: false // Session tracking starts unpaid until checkout resolves
+      paid: false,
+      isAdmin: false
     };
 
     res.json({
       success: true,
-      message: "✅ Login successful",
+      message: '✅ Login successful',
       fullname: user.fullname,
-      specialization: user.specialization
+      specialization: user.specialization,
+      isAdmin: false
     });
   } catch (err) {
-    console.error("Login Error: ", err);
+    console.error('Login Error: ', err);
     res.status(500).json({ success: false, message: '❌ Error logging in.' });
   }
 });
@@ -116,9 +143,10 @@ function ensureAuth(req, res, next) {
 
 // 👑 STRICT ADMIN GUARD: Bound explicitly to your verified login details
 const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
+const ADMIN_PASSWORD = "464455Jo@";
 
 function ensureAdmin(req, res, next) {
-  if (req.session.user && req.session.user.email === ADMIN_EMAIL) {
+  if (req.session.user && (req.session.user.isAdmin || req.session.user.email === ADMIN_EMAIL)) {
     return next();
   }
   res.status(403).send("🚫 Access Denied: You do not have administrator permissions.");
@@ -185,6 +213,11 @@ async function generateMpesaToken(req, res, next) {
 app.post('/pay', ensureAuth, generateMpesaToken, async (req, res) => {
   let { phone } = req.body;
 
+  if (req.session.user.isAdmin) {
+    req.session.user.paid = true;
+    return res.json({ success: true, message: '✅ Admin access bypasses payment and certificate unlock flow.' });
+  }
+
   // Formatting utility to transform standard numbers into 254XXXXXXXX format
   if (phone.startsWith('0')) phone = '254' + phone.slice(1);
   if (phone.startsWith('+')) phone = phone.slice(1);
@@ -236,7 +269,7 @@ app.post('/mpesa-callback', (req, res) => {
 // Safe PDF Layout Generator Route
 app.get('/certificate', (req, res) => {
   if (!req.session.user) return res.status(401).send("⚠️ Not logged in.");
-  if (!req.session.user.paid) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
+  if (!req.session.user.paid && !req.session.user.isAdmin) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
 
   const { fullname, specialization } = req.session.user;
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -392,7 +425,7 @@ async function sendPasswordResetEmail(userEmail, token, req) {
 // Session teardown route
 app.get('/logout', (req, res) => {
   req.session.destroy((err) => {
-    if (err) console.error("Error breaking active sessions down: ", err);
+    if (err) console.error("Error breaking active sessions down:", err);
     res.clearCookie('connect.sid'); 
     res.redirect('/index.html');
   });

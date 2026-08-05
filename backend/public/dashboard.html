@@ -2627,6 +2627,19 @@
     }
   }
 
+  function showAdminControls() {
+    const adminZone = document.getElementById("admin-zone");
+    if (adminZone) {
+      adminZone.innerHTML = '<button class="admin-btn" onclick="window.location.href=\'/user.html\'">Portal Audit</button>';
+    }
+  }
+
+  function revealAllSpecializationGroups() {
+    document.querySelectorAll('.sidebar-group').forEach(group => {
+      group.style.display = 'flex';
+    });
+  }
+
   /**
    * Clears out irrelevant sidebar groups and isolates the user's specific career track
    */
@@ -2821,10 +2834,35 @@
   // ==========================================
   // 🔒 INITIALIZATION & ROUTE SECURITY
   // ==========================================
-  document.addEventListener("DOMContentLoaded", () => {
-    // Initialize the dashboard from the logged-in user's specialization
-    const initialSpec = "informationtechnology"; // Replace with dynamic value as needed
-    setUserSpecialization(initialSpec, "Joshua Kalte");
+  document.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const res = await fetch('/user-info');
+      if (res.ok) {
+        const userInfo = await res.json();
+        if (userInfo && userInfo.isAdmin) {
+          showAdminControls();
+          revealAllSpecializationGroups();
+          showSection('home');
+          return;
+        }
+
+        if (userInfo && userInfo.specialization) {
+          setUserSpecialization(userInfo.specialization, userInfo.fullname || '');
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Dashboard user-info lookup failed:', err.message);
+    }
+
+    const storedSpec = sessionStorage.getItem('loginSpec') || '';
+    const storedName = sessionStorage.getItem('loginName') || '';
+
+    if (storedSpec) {
+      setUserSpecialization(storedSpec, storedName);
+    } else {
+      showSection('home');
+    }
   });
 </script>
 </body>
