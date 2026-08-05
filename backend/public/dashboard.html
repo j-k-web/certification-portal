@@ -2822,7 +2822,9 @@
   // 🔒 INITIALIZATION & ROUTE SECURITY
   // ==========================================
   document.addEventListener("DOMContentLoaded", () => {
-    showSection('home');
+    // Initialize the dashboard from the logged-in user's specialization
+    const initialSpec = "informationtechnology"; // Replace with dynamic value as needed
+    setUserSpecialization(initialSpec, "Joshua Kalte");
   });
 </script>
 </body>
