@@ -27,25 +27,6 @@
     .password-wrap input {
       width: 100%; padding: 12px 14px; margin: 10px 0; padding-right: 36px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; background: #f8fbff;
     }
-    .toggle-password {
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 10px;
-      height: 10px;
-      border: none;
-      background: transparent;
-      color: #475569;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 8px;
-      line-height: 1;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
     .container button {
       width: 100%; padding: 12px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border: none; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: 700;
     }
@@ -61,11 +42,9 @@
     <form id="resetForm">
       <div class="password-wrap">
         <input type="password" id="newPassword" placeholder="New password" required>
-        <button type="button" class="toggle-password" data-target="newPassword" aria-label="Show password">👁</button>
       </div>
       <div class="password-wrap">
         <input type="password" id="confirmPassword" placeholder="Confirm password" required>
-        <button type="button" class="toggle-password" data-target="confirmPassword" aria-label="Show password">👁</button>
       </div>
       <button type="submit">Update Password</button>
     </form>
@@ -78,16 +57,6 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
-
-    document.querySelectorAll('.toggle-password').forEach(function(button) {
-      button.addEventListener('click', function() {
-        const target = document.getElementById(button.dataset.target);
-        const isHidden = target.type === 'password';
-        target.type = isHidden ? 'text' : 'password';
-        button.textContent = isHidden ? '🙈' : '👁';
-        button.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
-      });
-    });
 
     document.getElementById('resetForm').addEventListener('submit', async function(e) {
       e.preventDefault();
