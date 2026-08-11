@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reset Password</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #edf4ff, #f8fafc);
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.98);
+      padding: 38px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      width: 400px;
+      text-align: center;
+      border: 1px solid #dbe4f0;
+    }
+    .container h2 { margin-bottom: 20px; font-size: 26px; color: #0f172a; }
+    .password-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .password-wrap input {
+      width: 100%; padding: 12px 14px; margin: 10px 0; padding-right: 36px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; background: #f8fbff;
+    }
+    .container button {
+      width: 100%; padding: 12px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border: none; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: 700;
+    }
+    .container button:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); }
+    #resetMessage { margin-top: 12px; font-size: 14px; }
+    .link { margin-top: 15px; font-size: 14px; color: #475569; }
+    .link a { color: #2563eb; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Reset Password</h2>
+    <form id="resetForm">
+      <div class="password-wrap">
+        <input type="password" id="newPassword" placeholder="New password" required>
+      </div>
+      <div class="password-wrap">
+        <input type="password" id="confirmPassword" placeholder="Confirm password" required>
+      </div>
+      <button type="submit">Update Password</button>
+    </form>
+    <div id="resetMessage"></div>
+    <div class="link">
+      <p><a href="index.html">Back to login</a></p>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    document.getElementById('resetForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const messageBox = document.getElementById('resetMessage');
+
+      if (newPassword !== confirmPassword) {
+        messageBox.style.color = '#c0392b';
+        messageBox.innerText = '⚠️ Passwords do not match.';
+        return;
+      }
+
+      if (!token) {
+        messageBox.style.color = '#c0392b';
+        messageBox.innerText = '⚠️ Missing reset token.';
+        return;
+      }
+
+      messageBox.style.color = 'black';
+      messageBox.innerText = '⏳ Updating your password...';
+
+      try {
+        const res = await fetch('/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password: newPassword })
+        });
+
+        const response = await res.json();
+        if (response.success) {
+          messageBox.style.color = '#27ae60';
+          messageBox.innerText = response.message;
+          setTimeout(() => {
+            window.location.href = '/index.html';
+          }, 1200);
+        } else {
+          messageBox.style.color = '#c0392b';
+          messageBox.innerText = response.message;
+        }
+      } catch (err) {
+        messageBox.style.color = '#c0392b';
+        messageBox.innerText = '❌ Reset failed: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

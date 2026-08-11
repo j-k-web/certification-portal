@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #edf4ff, #f8fafc);
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.98);
+      padding: 38px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      width: 420px;
+      text-align: center;
+      border: 1px solid #dbe4f0;
+    }
+    .container h2 { margin-bottom: 20px; font-size: 26px; color: #0f172a; }
+    .container input, .container select {
+      width: 100%; padding: 12px 14px; margin: 10px 0;
+      border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px;
+      background: #f8fbff;
+    }
+    .container button {
+      width: 100%; padding: 12px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff;
+      border: none; border-radius: 10px; font-size: 15px; cursor: pointer;
+      transition: background 0.3s;
+      font-weight: 700;
+    }
+    .container button:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); }
+    .link { margin-top: 15px; font-size: 14px; color: #475569; }
+    .link a { color: #2563eb; text-decoration: none; }
+    .link a:hover { text-decoration: underline; }
+    #registerMessage { margin-top: 10px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Register</h2>
+    <form id="registerForm">
+      <input type="text" id="fullname" placeholder="Full Name" required>
+      <input type="text" id="phone" placeholder="Phone Number" required>
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <select id="specialization" required>
+        <option value="">Select Area of Specialization</option>
+        <option value="Information Technology">Information Technology</option>
+        <option value="Finance">Finance</option>
+        <option value="Education">Education</option>
+        <option value="Healthcare">Healthcare</option>
+        <option value="Agriculture">Agriculture</option>
+        <option value="Engineering">Engineering</option>
+        <option value="Entrepreneurship">Entrepreneurship</option>
+        <option value="Environmental Science">Environmental Science</option>
+      </select>
+      <button type="submit">Register</button>
+    </form>
+    <div id="registerMessage"></div>
+    <div class="link">
+      <p>Already have an account? <a href="index.html">Login here</a></p>
+    </div>
+  </div>
+
+ <script>
+  document.getElementById("registerForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const data = {
+      fullname: document.getElementById("fullname").value,
+      phone: document.getElementById("phone").value,
+      email: document.getElementById("email").value,
+      password: document.getElementById("password").value,
+      specialization: document.getElementById("specialization").value
+    };
+
+    try {
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      const response = await res.json();
+
+      if (response.success) {
+        document.getElementById("registerMessage").innerText = "✅ Registration successful! Proceed to login...";
+        setTimeout(() => {
+          window.location.href = "/index.html";
+        }, 1500);
+      } else {
+        document.getElementById("registerMessage").innerText = response.message;
+      }
+    } catch (err) {
+      document.getElementById("registerMessage").innerText = "❌ Error registering: " + err.message;
+    }
+  });
+</script>
+
+</body>
+</html>
