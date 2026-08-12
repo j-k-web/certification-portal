@@ -2553,7 +2553,7 @@
           This payment confirms your participation in the National Youth Technology Program.
         </p>
 
-        <button id="payButton" class="submit">Pay Ksh 200 to Unlock Certificate</button>
+        <button id="payButton" class="submit">Pay Ksh 200 via KCB Buni to Unlock Certificate</button>
       </div>
 
       <div id="paymentStatus" class="payment-status"></div>
@@ -2783,110 +2783,53 @@
   }
 
   // ==========================================
-  // 📲 INTASEND M-PESA PAYMENT FLOW
+  // 📲 KCB BUNI PAYMENT PIPELINE
   // ==========================================
   document.getElementById("payButton").addEventListener("click", async () => {
-    const rawPhone = prompt("Enter your M-Pesa number:\n(Formats accepted: 0712345678 or 254712345678)");
-    if (!rawPhone) return;
-
-    const payBtn = document.getElementById("payButton");
-    const statusEl = document.getElementById("paymentStatus");
-
-    payBtn.disabled = true;
-    payBtn.textContent = "Processing...";
-    statusEl.innerHTML = "<p style='color:#e67e22; font-weight:bold;'>⏳ Sending STK Push to your phone...</p>";
+    const phone = prompt("Enter your KCB Buni-linked phone number (format: 2547XXXXXXXX):");
+    if (!phone) return;
 
     try {
       const response = await fetch("/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: rawPhone.trim() })
+        body: JSON.stringify({ phone })
       });
 
       const data = await response.json();
+      document.getElementById("paymentStatus").innerHTML = 
+        "<p style='color:#e67e22; font-weight:bold;'>📲 KCB Buni STK Push sent. Check your phone and enter your KCB PIN to complete the Ksh 200 payment...</p>";
 
-      if (!data.success) {
-        statusEl.innerHTML = `<p style='color:red; font-weight:bold;'>❌ ${data.message}</p>`;
-        payBtn.disabled = false;
-        payBtn.textContent = "Pay Ksh 200 to Unlock Certificate";
-        return;
-      }
-
-      statusEl.innerHTML = "<p style='color:#e67e22; font-weight:bold;'>📲 STK Push sent! Check your phone and enter your M-Pesa PIN. Waiting for confirmation...</p>";
-
-      // Poll /pay/status every 5 seconds (up to 2 minutes)
-      let pollCount = 0;
-      const maxPolls = 24; // 24 × 5s = 2 minutes
-
-      const pollStatus = async () => {
-        pollCount++;
-        try {
-          const statusRes = await fetch("/pay/status");
-          const statusData = await statusRes.json();
-
-          if (statusData.paid) {
-            statusEl.innerHTML = "<p style='color:green; font-weight:bold;'>✅ Payment confirmed! Loading your certificate...</p>";
-            await loadCertificate();
-            return;
-          }
-
-          if (statusData.message && (statusData.message.includes("failed") || statusData.message.includes("cancelled"))) {
-            statusEl.innerHTML = `<p style='color:red; font-weight:bold;'>❌ ${statusData.message} Please try again.</p>`;
-            payBtn.disabled = false;
-            payBtn.textContent = "Pay Ksh 200 to Unlock Certificate";
-            return;
-          }
-
-          if (pollCount < maxPolls) {
-            setTimeout(pollStatus, 5000);
-          } else {
-            statusEl.innerHTML = "<p style='color:orange; font-weight:bold;'>⏰ Payment verification timed out. If you paid, refresh the page. Otherwise, try again.</p>";
-            payBtn.disabled = false;
-            payBtn.textContent = "Pay Ksh 200 to Unlock Certificate";
-          }
-        } catch (e) {
-          if (pollCount < maxPolls) {
-            setTimeout(pollStatus, 5000);
-          }
+      // Polling cycle to wait for confirmation response hook
+      const checkPayment = async () => {
+        const res = await fetch("/certificate");
+        
+        if (res.ok) {
+          document.getElementById("paymentStatus").innerHTML = 
+            "<p style='color:green; font-weight:bold;'>✅ Verification complete! Digital processing cleared. Access granted below.</p>";
+          
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.getElementById("downloadLink");
+          const previewShell = document.getElementById("certificatePreviewShell");
+          const previewFrame = document.getElementById("certificatePreview");
+          
+          link.href = url;
+          link.style.display = "inline-flex";
+          previewFrame.src = url;
+          previewShell.style.display = "block";
+        } else {
+          setTimeout(checkPayment, 5000);
         }
       };
-
-      setTimeout(pollStatus, 7000); // First check after 7 seconds (allow time to enter PIN)
+      
+      checkPayment();
 
     } catch (err) {
-      statusEl.innerHTML = "<p style='color:red;'>❌ Network error. Please check your connection and try again.</p>";
-      payBtn.disabled = false;
-      payBtn.textContent = "Pay Ksh 200 to Unlock Certificate";
+      document.getElementById("paymentStatus").innerHTML = 
+        "<p style='color:red;'>❌ KCB Buni payment failed. Please retry.</p>";
     }
   });
-
-  // Download and preview the certificate PDF
-  async function loadCertificate() {
-    try {
-      const res = await fetch("/certificate");
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.getElementById("downloadLink");
-        const previewShell = document.getElementById("certificatePreviewShell");
-        const previewFrame = document.getElementById("certificatePreview");
-
-        link.href = url;
-        link.style.display = "inline-flex";
-        previewFrame.src = url;
-        previewShell.style.display = "block";
-
-        document.getElementById("paymentStatus").innerHTML =
-          "<p style='color:green; font-weight:bold;'>✅ Certificate ready! Download or view it below.</p>";
-      } else {
-        document.getElementById("paymentStatus").innerHTML =
-          "<p style='color:orange;'>⚠️ Payment recorded but certificate load failed. Please refresh the page.</p>";
-      }
-    } catch (e) {
-      document.getElementById("paymentStatus").innerHTML =
-        "<p style='color:orange;'>⚠️ Could not load certificate. Please refresh the page.</p>";
-    }
-  }
 
   // ==========================================
   // 🔒 INITIALIZATION & ROUTE SECURITY

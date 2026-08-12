@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   specialization: { type: String, required: true },
   paid: { type: Boolean, default: false },           // ← persists payment across sessions
   paidAt: { type: Date, default: null },             // ← timestamp of payment
-  intasendInvoiceId: { type: String, default: null }, // ← for reference/audit
+  buniCheckoutID: { type: String, default: null },   // ← for KCB Buni reference
   resetPasswordToken: { type: String, default: null },
   resetPasswordExpires: { type: Date, default: null }
 });
