@@ -198,11 +198,17 @@ app.delete('/api/admin/users/:id', ensureAdmin, async (req, res) => {
 async function generateBuniToken(req, res, next) {
   const clientId = process.env.BUNI_CLIENT_ID;
   const clientSecret = process.env.BUNI_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return res.status(500).json({ success: false, message: "❌ Missing KCB Buni API credentials in environment variables." });
+  }
+
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
   try {
     const response = await axios.post(
-      'https://api.buni.kcbgroup.com/token',
-      'grant_type=client_credentials',
+      'https://api.buni.kcbgroup.com/token?grant_type=client_credentials',
+      {},
       {
         headers: {
           Authorization: `Basic ${credentials}`,
@@ -210,6 +216,7 @@ async function generateBuniToken(req, res, next) {
         }
       }
     );
+
     req.buniToken = response.data.access_token;
     next();
   } catch (err) {
@@ -227,16 +234,18 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
     return res.json({ success: true, message: '✅ Admin access bypasses payment and certificate unlock flow.' });
   }
 
-  // Normalize phone to 254XXXXXXXXX format
+  // Normalize phone to strictly 254XXXXXXXXX format
+  phone = phone.replace(/\D/g, ''); // Remove non-numeric characters
   if (phone.startsWith('0')) phone = '254' + phone.slice(1);
-  if (phone.startsWith('+')) phone = phone.slice(1);
+  if (phone.startsWith('7') || phone.startsWith('1')) phone = '254' + phone;
 
   const endpoint = 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush';
   const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHMMSS
 
-  // Generate unique reference string & apply KCB Till formatting
+  // Merchant shortcode and unique reference
   const tillNumber = process.env.BUNI_MERCHANT_CODE || "8125462";
-  const uniqueRef = `KALMOT-${Date.now()}`; // Unique timestamp-based reference
+  const uniqueRef = `KALMOT${Date.now().toString().slice(-6)}`;
+  const userName = req.session.user?.fullname || "Customer";
 
   try {
     await axios.post(endpoint, {
@@ -244,8 +253,9 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
       ReferenceCode: uniqueRef,
       Amount: '200',
       Currency: 'KES',
-      InvoiceNumber: `${tillNumber}-${uniqueRef}`, // Formatted as 8125462-KALMOT-[timestamp]
+      InvoiceNumber: `${tillNumber}-${uniqueRef}`,
       CustomerMSISDN: phone,
+      CustomerName: userName,
       CallBackURL: process.env.BUNI_CALLBACK_URL,
       Timestamp: timestamp,
       Remark: 'Certification Access Fee'
@@ -261,7 +271,10 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
     res.json({ success: true, message: "📲 KCB Buni STK Push sent. Check your phone and enter your PIN." });
   } catch (err) {
     console.error("KCB Buni STK Push Error: ", err.response?.data || err.message);
-    res.status(500).json({ success: false, message: "❌ KCB Buni payment initiation failed." });
+    res.status(500).json({ 
+      success: false, 
+      message: `❌ Payment initiation failed: ${err.response?.data?.message || err.message}` 
+    });
   }
 });
 
