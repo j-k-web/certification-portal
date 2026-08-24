@@ -51,7 +51,7 @@ app.post('/register', async (req, res) => {
   try {
     const sanitizedEmail = email.toLowerCase().trim();
     const existingUser = await User.findOne({ email: sanitizedEmail });
-    
+
     if (existingUser) {
       return res.status(400).json({ success: false, message: '⚠️ User already registered with this email.' });
     }
@@ -194,14 +194,14 @@ app.delete('/api/admin/users/:id', ensureAdmin, async (req, res) => {
   }
 });
 
-// Helper Middleware: Generate KCB Buni OAuth access token
+// Helper Middleware: Generate KCB Buni OAuth access token (LIVE PRODUCTION)
 async function generateBuniToken(req, res, next) {
   const clientId = process.env.BUNI_CLIENT_ID;
   const clientSecret = process.env.BUNI_CLIENT_SECRET;
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   try {
     const response = await axios.post(
-      'https://uat.buni.kcbgroup.com/token',
+      'https://api.buni.kcbgroup.com/token',
       'grant_type=client_credentials',
       {
         headers: {
@@ -218,7 +218,7 @@ async function generateBuniToken(req, res, next) {
   }
 }
 
-// KCB Buni STK Push Trigger
+// KCB Buni STK Push Trigger (LIVE PRODUCTION)
 app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   let { phone } = req.body;
 
@@ -231,16 +231,20 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   if (phone.startsWith('0')) phone = '254' + phone.slice(1);
   if (phone.startsWith('+')) phone = phone.slice(1);
 
-  const endpoint = 'https://uat.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush';
+  const endpoint = 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush';
   const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHMMSS
+
+  // Generate unique reference string & apply KCB Till formatting
+  const tillNumber = process.env.BUNI_MERCHANT_CODE || "8125462";
+  const uniqueRef = `KALMOT-${Date.now()}`; // Unique timestamp-based reference
 
   try {
     await axios.post(endpoint, {
-      MerchantCode: process.env.BUNI_MERCHANT_CODE,
-      ReferenceCode: `CERT-${Date.now()}`,
+      MerchantCode: tillNumber,
+      ReferenceCode: uniqueRef,
       Amount: '200',
       Currency: 'KES',
-      InvoiceNumber: `INV-${Date.now()}`,
+      InvoiceNumber: `${tillNumber}-${uniqueRef}`, // Formatted as 8125462-KALMOT-[timestamp]
       CustomerMSISDN: phone,
       CallBackURL: process.env.BUNI_CALLBACK_URL,
       Timestamp: timestamp,
