@@ -88,7 +88,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// 👑 STRICT ADMIN GUARD: Bound explicitly to your verified login details
+// 👑 STRICT ADMIN GUARD: Bound explicitly to verified details
 const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
 const ADMIN_PASSWORD = "464455Jo@";
 
@@ -134,7 +134,7 @@ app.post('/login', async (req, res) => {
       fullname: user.fullname,
       specialization: user.specialization,
       email: user.email,
-      paid: false,
+      paid: user.paid || false,
       isAdmin: false
     };
 
@@ -169,7 +169,7 @@ app.get('/dashboard.html', ensureAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// 👥 Admin-Only Page Routing Rule: Only your email can load the file layout
+// 👥 Admin-Only Page Routing Rule
 app.get('/user.html', ensureAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'user.html'));
 });
@@ -183,7 +183,6 @@ app.get('/user-info', (req, res) => {
 // 📊 Admin-Only API Endpoint Route: Fetches registered system profiles for user.html
 app.get('/api/admin/users', ensureAdmin, async (req, res) => {
   try {
-    // Exclude password field hashes from returning to the browser layout for security
     const users = await User.find({}, '-password'); 
     res.json({ success: true, data: users });
   } catch (err) {
@@ -259,7 +258,7 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   }
 
   // Normalize phone strictly to 2547XXXXXXXX or 2541XXXXXXXX format
-  phone = String(phone).replace(/\D/g, ''); // Remove non-numeric characters
+  phone = String(phone).replace(/\D/g, ''); 
   if (phone.startsWith('0')) phone = '254' + phone.slice(1);
   if (phone.startsWith('7') || phone.startsWith('1')) phone = '254' + phone;
 
@@ -270,6 +269,7 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   const tillNumber = process.env.BUNI_MERCHANT_CODE || "8125462";
   const uniqueRef = `KALMOT${Date.now().toString().slice(-6)}`;
   const userName = req.session.user?.fullname || "Customer";
+  const callbackUrl = process.env.BUNI_CALLBACK_URL || 'https://certification-portal-backend-6pno.onrender.com/buni-callback';
 
   try {
     await axios.post(endpoint, {
@@ -278,9 +278,11 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
       Amount: '200',
       Currency: 'KES',
       InvoiceNumber: `${tillNumber}-${uniqueRef}`,
+      PhoneNumber: phone,
+      MSISDN: phone,
       CustomerMSISDN: phone,
       CustomerName: userName,
-      CallBackURL: process.env.BUNI_CALLBACK_URL,
+      CallBackURL: callbackUrl,
       Timestamp: timestamp,
       Remark: 'Certification Access Fee'
     }, {
@@ -289,8 +291,6 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
         'Content-Type': 'application/json'
       }
     });
-
-    req.session.user.paid = true;
 
     res.json({ success: true, message: "📲 KCB Buni STK Push sent. Check your phone and enter your PIN." });
   } catch (err) {
@@ -303,23 +303,55 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
 });
 
 // KCB Buni Payment Callback Webhook
-app.post('/buni-callback', (req, res) => {
+app.post('/buni-callback', async (req, res) => {
   const payload = req.body;
   console.log("💰 KCB Buni callback received:", JSON.stringify(payload));
 
-  const resultCode = payload?.ResultCode || payload?.resultCode;
+  const resultCode = payload?.ResultCode || payload?.resultCode || payload?.Body?.stkCallback?.ResultCode;
+  
   if (resultCode === '0' || resultCode === 0) {
-    console.log("✅ KCB Buni payment confirmed:", payload?.CheckoutRequestID || payload?.ReferenceCode);
+    const reference = payload?.ReferenceCode || payload?.CheckoutRequestID;
+    console.log("✅ KCB Buni payment confirmed:", reference);
+
+    // If customer phone/email is returned in payload, update DB user paid state
+    const customerPhone = payload?.CustomerMSISDN || payload?.MSISDN || payload?.PhoneNumber;
+    if (customerPhone) {
+      let normalizedPhone = String(customerPhone).replace(/\D/g, '');
+      if (normalizedPhone.startsWith('0')) normalizedPhone = '254' + normalizedPhone.slice(1);
+      
+      try {
+        await User.findOneAndUpdate({ phone: normalizedPhone }, { paid: true });
+        console.log(`✅ Marked user with phone ${normalizedPhone} as paid.`);
+      } catch (dbErr) {
+        console.error("Error updating user payment status in DB:", dbErr);
+      }
+    }
   } else {
     console.log(`❌ KCB Buni payment failed [Code ${resultCode}]`);
   }
+
   res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
 });
 
 // Safe PDF Layout Generator Route
-app.get('/certificate', (req, res) => {
+app.get('/certificate', async (req, res) => {
   if (!req.session.user) return res.status(401).send("⚠️ Not logged in.");
-  if (!req.session.user.paid && !req.session.user.isAdmin) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
+
+  // Re-verify payment status from DB if non-admin
+  if (!req.session.user.isAdmin) {
+    try {
+      const freshUser = await User.findById(req.session.user.id);
+      if (freshUser && freshUser.paid) {
+        req.session.user.paid = true;
+      }
+    } catch (e) {
+      console.error("User lookup failed:", e);
+    }
+  }
+
+  if (!req.session.user.paid && !req.session.user.isAdmin) {
+    return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
+  }
 
   const { fullname, specialization } = req.session.user;
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
