@@ -76,6 +76,10 @@ app.post('/register', async (req, res) => {
   }
 });
 
+// 👑 STRICT ADMIN GUARD: Bound explicitly to your verified login details
+const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
+const ADMIN_PASSWORD = "464455Jo@";
+
 // Secure Login Route
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -141,10 +145,6 @@ function ensureAuth(req, res, next) {
   res.redirect('/index.html');
 }
 
-// 👑 STRICT ADMIN GUARD: Bound explicitly to your verified login details
-const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
-const ADMIN_PASSWORD = "464455Jo@";
-
 function ensureAdmin(req, res, next) {
   if (req.session.user && (req.session.user.isAdmin || req.session.user.email === ADMIN_EMAIL)) {
     return next();
@@ -196,32 +196,40 @@ app.delete('/api/admin/users/:id', ensureAdmin, async (req, res) => {
 
 // Helper Middleware: Generate KCB Buni OAuth access token (LIVE PRODUCTION)
 async function generateBuniToken(req, res, next) {
-  const clientId = process.env.BUNI_CLIENT_ID;
-  const clientSecret = process.env.BUNI_CLIENT_SECRET;
+  const clientId = process.env.BUNI_CLIENT_ID?.trim();
+  const clientSecret = process.env.BUNI_CLIENT_SECRET?.trim();
 
   if (!clientId || !clientSecret) {
-    return res.status(500).json({ success: false, message: "❌ Missing KCB Buni API credentials in environment variables." });
+    return res.status(500).json({ 
+      success: false, 
+      message: "❌ Missing KCB Buni API credentials in environment variables." 
+    });
   }
 
+  // Base64 encode ConsumerKey:ConsumerSecret
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   try {
-    const response = await axios.post(
-      'https://api.buni.kcbgroup.com/token?grant_type=client_credentials',
-      {},
-      {
-        headers: {
-          Authorization: `Basic ${credentials}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
+    const response = await axios({
+      method: 'post',
+      url: 'https://api.buni.kcbgroup.com/token',
+      params: {
+        grant_type: 'client_credentials'
+      },
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
       }
-    );
+    });
 
     req.buniToken = response.data.access_token;
     next();
   } catch (err) {
     console.error("KCB Buni Token Error: ", err.response?.data || err.message);
-    res.status(500).json({ success: false, message: "❌ Failed to generate KCB Buni token." });
+    res.status(500).json({ 
+      success: false, 
+      message: "❌ Failed to generate KCB Buni authorization token." 
+    });
   }
 }
 
@@ -234,8 +242,12 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
     return res.json({ success: true, message: '✅ Admin access bypasses payment and certificate unlock flow.' });
   }
 
-  // Normalize phone to strictly 254XXXXXXXXX format
-  phone = phone.replace(/\D/g, ''); // Remove non-numeric characters
+  if (!phone) {
+    return res.status(400).json({ success: false, message: "⚠️ Mobile number is required." });
+  }
+
+  // Normalize phone strictly to 2547XXXXXXXX or 2541XXXXXXXX format
+  phone = String(phone).replace(/\D/g, ''); // Remove non-numeric characters
   if (phone.startsWith('0')) phone = '254' + phone.slice(1);
   if (phone.startsWith('7') || phone.startsWith('1')) phone = '254' + phone;
 
