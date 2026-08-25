@@ -7,14 +7,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
-const bcrypt = require('bcryptjs'); // Encrypts passwords before database entry
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const axios = require('axios');
-const User = require('./models/User'); 
+const User = require('./models/User');
 
 const app = express();
 
