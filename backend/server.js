@@ -1,13 +1,18 @@
-require('dotenv').config();
+// Only load dotenv in non-production environments to avoid overriding Render dashboard variables
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs'); // Encrypts passwords before database entry
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const axios = require('axios');
 const User = require('./models/User'); 
 
@@ -20,11 +25,23 @@ app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Secure Session Handling
+// MongoDB Atlas connection
+const MONGO_URI = process.env.MONGO_URI;
+
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ MongoDB connection error:", err));
+
+// Production-ready Persistent Session Store via MongoDB
 app.use(session({
   secret: process.env.SESSION_SECRET || 'a-solid-fallback-token-string',
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: MONGO_URI,
+    collectionName: 'sessions',
+    ttl: 60 * 60 * 2 // 2 Hours active session duration
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production', // true if served over HTTPS on Render
     httpOnly: true,
@@ -34,11 +51,6 @@ app.use(session({
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
-
-// MongoDB Atlas connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => console.error("❌ MongoDB connection error:", err));
 
 // Root route → serve login page
 app.get('/', (req, res) => {
@@ -318,8 +330,10 @@ app.get('/certificate', (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=certificate.pdf');
     doc.pipe(res);
 
-    doc.image(path.join(__dirname, 'assets/certbackground.png'),
-      0, 0, { width: doc.page.width, height: doc.page.height });
+    const bgImagePath = path.join(__dirname, 'assets/certbackground.png');
+    if (fs.existsSync(bgImagePath)) {
+      doc.image(bgImagePath, 0, 0, { width: doc.page.width, height: doc.page.height });
+    }
 
     doc.font('Times-Roman').fillColor('black');
     doc.fontSize(22).text(fullname, 0, 260, { align: 'center', underline: true });
