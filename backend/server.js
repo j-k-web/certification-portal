@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const axios = require('axios');
 const User = require('./models/User'); 
 
@@ -21,10 +22,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Secure Session Handling
+// IMPORTANT: a persistent `store` is required in production. Without one, express-session
+// falls back to the in-memory MemoryStore, which is wiped every time the Node process
+// restarts (Render redeploys, crashes, or free-tier services spinning down after idling).
+// That wipe is what was causing "Not logged in" errors on /verify-mpesa and the certificate
+// never auto-unlocking after a real M-PESA payment — the session simply no longer existed
+// by the time the browser polled back or the user typed in their code.
 app.use(session({
   secret: process.env.SESSION_SECRET || 'a-solid-fallback-token-string',
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    collectionName: 'sessions',
+    ttl: 60 * 60 * 2 // seconds — keep in sync with cookie.maxAge below
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production', // true if served over HTTPS on Render
     httpOnly: true,
@@ -336,7 +348,7 @@ app.post('/verify-mpesa', async (req, res) => {
 
   // Validate format: M-PESA codes are 10 alphanumeric chars
   if (!/^[A-Z0-9]{10}$/.test(mpesaCode)) {
-    return res.status(400).json({ success: false, message: 'Invalid M-PESA code format. It should be 10 characters like UHQDC4FLXC.' });
+    return res.status(400).json({ success: false, message: 'Invalid M-PESA code format. It should be 10 characters like UHQDC.....' });
   }
 
   try {
@@ -374,6 +386,25 @@ app.post('/verify-mpesa', async (req, res) => {
     console.error('M-PESA verification error:', err.message);
     res.status(500).json({ success: false, message: 'Server error during verification.' });
   }
+});
+
+// Lightweight Payment Status Check (used for polling + the manual Refresh button)
+app.get('/payment-status', async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ success: false, message: 'Not logged in.' });
+
+  if (req.session.user.isAdmin) return res.json({ success: true, paid: true });
+
+  // Re-check DB in case the KCB Buni callback updated paid status after the session was created
+  if (!req.session.user.paid) {
+    try {
+      const freshUser = await User.findOne({ email: req.session.user.email });
+      if (freshUser && freshUser.paid) {
+        req.session.user.paid = true; // sync session so /certificate works right after
+      }
+    } catch (e) { /* transient DB hiccup — client will just poll again */ }
+  }
+
+  res.json({ success: true, paid: !!req.session.user.paid });
 });
 
 // Safe PDF Layout Generator Route

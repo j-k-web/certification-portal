@@ -2558,12 +2558,16 @@
 
       <div id="paymentStatus" class="payment-status"></div>
 
+      <button id="refreshStatusBtn" class="submit" style="display:none; background:#607d8b; margin-top:10px;">
+        🔄 Refresh / Check Payment Status
+      </button>
+
       <!-- M-PESA Manual Code Verification -->
       <div id="mpesaVerifyBox" style="display:none; margin-top:18px; padding:18px; background:#f0faf0; border:1px solid #b2dfdb; border-radius:10px;">
         <p style="font-weight:bold; color:#2e7d32; margin-bottom:10px;">📩 Already paid? Enter your M-PESA confirmation code to unlock your certificate instantly.</p>
-        <p style="font-size:13px; color:#555; margin-bottom:12px;">Example code format: <strong>UHQDC4FLXC</strong> — found in the M-PESA SMS you received after payment.</p>
+        <p style="font-size:13px; color:#555; margin-bottom:12px;">Example code format: <strong>UHQDC.....</strong> — found in the M-PESA SMS you received after payment.</p>
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <input id="mpesaCodeInput" type="text" maxlength="10" placeholder="e.g. UHQDC4FLXC"
+          <input id="mpesaCodeInput" type="text" maxlength="10" placeholder="e.g. UHQDC....."
             style="padding:10px 14px; border:1px solid #ccc; border-radius:6px; font-size:15px; text-transform:uppercase; width:200px; letter-spacing:2px;" />
           <input id="mpesaPhoneInput" type="text" maxlength="12" placeholder="e.g. 0712345678"
             style="padding:10px 14px; border:1px solid #ccc; border-radius:6px; font-size:15px; width:160px;" />
@@ -2814,6 +2818,80 @@
     document.getElementById("mpesaVerifyBox").style.display = "none";
   }
 
+  // ── Shared: ask the server if payment has cleared yet, and render the cert if so ──
+  // Uses the cheap /payment-status endpoint instead of generating a PDF on every poll.
+  let pollTimer = null;
+
+  async function checkStatusNow({ isManual = false } = {}) {
+    const statusEl = document.getElementById("paymentStatus");
+    if (isManual) {
+      statusEl.innerHTML = "<p style='color:#e67e22; font-weight:bold;'>Checking payment status...</p>";
+    }
+    try {
+      const res = await fetch("/payment-status");
+
+      if (res.status === 401) {
+        // Session expired/lost server-side — the only real fix is logging in again.
+        statusEl.innerHTML =
+          "<p style='color:red;'>⚠️ Your session expired. Please <a href='/index.html'>log in again</a> — your payment record itself is safe.</p>";
+        return false;
+      }
+
+      const data = await res.json();
+
+      if (data.success && data.paid) {
+        statusEl.innerHTML =
+          "<p style='color:green; font-weight:bold;'>✅ Payment confirmed! Your certificate is ready.</p>";
+        const certRes = await fetch("/certificate");
+        if (certRes.ok) {
+          const blob = await certRes.blob();
+          renderCertificate(blob);
+        }
+        sessionStorage.removeItem('pendingPaymentPhone');
+        if (pollTimer) clearTimeout(pollTimer);
+        return true;
+      }
+
+      if (isManual) {
+        statusEl.innerHTML =
+          "<p style='color:#e67e22; font-weight:bold;'>Not confirmed yet. If you've already paid, this can take a minute to reflect — try again shortly, or verify with your M-PESA code below.</p>";
+      }
+      return false;
+    } catch (e) {
+      if (isManual) {
+        statusEl.innerHTML = "<p style='color:red;'>❌ Couldn't reach the server. Check your connection and try again.</p>";
+      }
+      return false;
+    }
+  }
+
+  // ── Manual "Refresh / Check Payment Status" button ──
+  // Works standalone at any time (e.g. after a page reload) — not just mid-poll.
+  document.getElementById("refreshStatusBtn").addEventListener("click", () => {
+    checkStatusNow({ isManual: true });
+  });
+
+  function startPolling() {
+    let pollCount = 0;
+    const maxPolls = 40; // ~5 minutes of background polling
+
+    const loop = async () => {
+      pollCount++;
+      const paid = await checkStatusNow();
+      if (paid) return;
+      if (pollCount > maxPolls) {
+        // Stop auto-polling, but leave the manual Refresh button available —
+        // no more forced full-page reloads that lose context.
+        document.getElementById("paymentStatus").innerHTML =
+          "<p style='color:#e67e22; font-weight:bold;'>Still waiting on confirmation. Use the Refresh button below once you've completed payment, or verify with your M-PESA code.</p>";
+        return;
+      }
+      pollTimer = setTimeout(loop, 5000);
+    };
+
+    pollTimer = setTimeout(loop, 15000);
+  }
+
   // ── STK Push button ──
   document.getElementById("payButton").addEventListener("click", async () => {
     const phone = prompt("Enter your M-PESA phone number (e.g. 0712345678):");
@@ -2840,36 +2918,14 @@
       document.getElementById("paymentStatus").innerHTML =
         "<p style='color:#e67e22; font-weight:bold;'>Check your phone and enter your M-PESA PIN to complete the transaction.</p>";
 
-      // Show manual code entry box
+      // Show manual code entry box + refresh button, and remember we're mid-payment
+      // so a page reload doesn't lose this state.
       document.getElementById("mpesaVerifyBox").style.display = "block";
+      document.getElementById("refreshStatusBtn").style.display = "inline-block";
       document.getElementById("mpesaPhoneInput").value = phone;
+      sessionStorage.setItem('pendingPaymentPhone', phone);
 
-      let pollCount = 0;
-      const maxPolls = 24; // 2 minutes
-
-      const checkPayment = async () => {
-        pollCount++;
-        if (pollCount > maxPolls) {
-          // Auto-reload so the certificate shows immediately if payment went through
-          window.location.reload();
-          return;
-        }
-        try {
-          const res = await fetch("/certificate");
-          if (res.ok) {
-            document.getElementById("paymentStatus").innerHTML =
-              "<p style='color:green; font-weight:bold;'>✅ Payment confirmed! Your certificate is ready.</p>";
-            const blob = await res.blob();
-            renderCertificate(blob);
-          } else {
-            setTimeout(checkPayment, 5000);
-          }
-        } catch (e) {
-          setTimeout(checkPayment, 5000);
-        }
-      };
-
-      setTimeout(checkPayment, 15000);
+      startPolling();
 
     } catch (err) {
       document.getElementById("paymentStatus").innerHTML =
@@ -2936,6 +2992,7 @@
 
         if (userInfo && userInfo.specialization) {
           setUserSpecialization(userInfo.specialization, userInfo.fullname || '');
+          resumePendingPaymentIfAny();
           return;
         }
       }
@@ -2951,7 +3008,20 @@
     } else {
       showSection('home');
     }
+    resumePendingPaymentIfAny();
   });
+
+  // If the user left mid-payment (e.g. reloaded the page, or came back later),
+  // pick the flow back up instead of making them start over.
+  function resumePendingPaymentIfAny() {
+    const pendingPhone = sessionStorage.getItem('pendingPaymentPhone');
+    if (!pendingPhone) return;
+    document.getElementById("mpesaVerifyBox").style.display = "block";
+    document.getElementById("refreshStatusBtn").style.display = "inline-block";
+    document.getElementById("mpesaPhoneInput").value = pendingPhone;
+    checkStatusNow({ isManual: false });
+    startPolling();
+  }
 </script>
 </body>
 </html>
