@@ -1,20 +1,15 @@
-// Only load dotenv in non-production environments to avoid overriding Render dashboard variables
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
+require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
-const fs = require('fs');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // Encrypts passwords before database entry
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
 const axios = require('axios');
-const User = require('./models/User');
+const User = require('./models/User'); 
 
 const app = express();
 
@@ -25,23 +20,11 @@ app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// MongoDB Atlas connection
-const MONGO_URI = process.env.MONGO_URI;
-
-mongoose.connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => console.error("❌ MongoDB connection error:", err));
-
-// Production-ready Persistent Session Store via MongoDB
+// Secure Session Handling
 app.use(session({
   secret: process.env.SESSION_SECRET || 'a-solid-fallback-token-string',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: MONGO_URI,
-    collectionName: 'sessions',
-    ttl: 60 * 60 * 2 // 2 Hours active session duration
-  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production', // true if served over HTTPS on Render
     httpOnly: true,
@@ -51,6 +34,11 @@ app.use(session({
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
+
+// MongoDB Atlas connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ MongoDB connection error:", err));
 
 // Root route → serve login page
 app.get('/', (req, res) => {
@@ -87,10 +75,6 @@ app.post('/register', async (req, res) => {
     res.status(500).json({ success: false, message: '❌ Error registering user.' });
   }
 });
-
-// 👑 STRICT ADMIN GUARD: Bound explicitly to verified details
-const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
-const ADMIN_PASSWORD = "464455Jo@";
 
 // Secure Login Route
 app.post('/login', async (req, res) => {
@@ -134,7 +118,7 @@ app.post('/login', async (req, res) => {
       fullname: user.fullname,
       specialization: user.specialization,
       email: user.email,
-      paid: user.paid || false,
+      paid: false,
       isAdmin: false
     };
 
@@ -157,6 +141,10 @@ function ensureAuth(req, res, next) {
   res.redirect('/index.html');
 }
 
+// 👑 STRICT ADMIN GUARD: Bound explicitly to your verified login details
+const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
+const ADMIN_PASSWORD = "464455Jo@";
+
 function ensureAdmin(req, res, next) {
   if (req.session.user && (req.session.user.isAdmin || req.session.user.email === ADMIN_EMAIL)) {
     return next();
@@ -169,7 +157,7 @@ app.get('/dashboard.html', ensureAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// 👥 Admin-Only Page Routing Rule
+// 👥 Admin-Only Page Routing Rule: Only your email can load the file layout
 app.get('/user.html', ensureAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'user.html'));
 });
@@ -183,6 +171,7 @@ app.get('/user-info', (req, res) => {
 // 📊 Admin-Only API Endpoint Route: Fetches registered system profiles for user.html
 app.get('/api/admin/users', ensureAdmin, async (req, res) => {
   try {
+    // Exclude password field hashes from returning to the browser layout for security
     const users = await User.find({}, '-password'); 
     res.json({ success: true, data: users });
   } catch (err) {
@@ -207,40 +196,32 @@ app.delete('/api/admin/users/:id', ensureAdmin, async (req, res) => {
 
 // Helper Middleware: Generate KCB Buni OAuth access token (LIVE PRODUCTION)
 async function generateBuniToken(req, res, next) {
-  const clientId = process.env.BUNI_CLIENT_ID?.trim();
-  const clientSecret = process.env.BUNI_CLIENT_SECRET?.trim();
+  const clientId = process.env.BUNI_CLIENT_ID;
+  const clientSecret = process.env.BUNI_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    return res.status(500).json({ 
-      success: false, 
-      message: "❌ Missing KCB Buni API credentials in environment variables." 
-    });
+    return res.status(500).json({ success: false, message: "❌ Missing KCB Buni API credentials in environment variables." });
   }
 
-  // Base64 encode ConsumerKey:ConsumerSecret
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   try {
-    const response = await axios({
-      method: 'post',
-      url: 'https://api.buni.kcbgroup.com/token',
-      params: {
-        grant_type: 'client_credentials'
-      },
-      headers: {
-        'Authorization': `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
+    const response = await axios.post(
+      'https://api.buni.kcbgroup.com/token?grant_type=client_credentials',
+      {},
+      {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       }
-    });
+    );
 
     req.buniToken = response.data.access_token;
     next();
   } catch (err) {
     console.error("KCB Buni Token Error: ", err.response?.data || err.message);
-    res.status(500).json({ 
-      success: false, 
-      message: "❌ Failed to generate KCB Buni authorization token." 
-    });
+    res.status(500).json({ success: false, message: "❌ Failed to generate KCB Buni token." });
   }
 }
 
@@ -249,18 +230,12 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   let { phone } = req.body;
 
   if (req.session.user.isAdmin) {
-    req.session.user.paid = true;
-    return res.json({ success: true, message: '✅ Admin access bypasses payment and certificate unlock flow.' });
   }
 
-  if (!phone) {
-    return res.status(400).json({ success: false, message: "⚠️ Mobile number is required." });
-  }
-
-  // Normalize phone strictly to 2547XXXXXXXX or 2541XXXXXXXX format
-  phone = String(phone).replace(/\D/g, ''); 
-  if (phone.startsWith('0')) phone = '254' + phone.slice(1);
-  if (phone.startsWith('7') || phone.startsWith('1')) phone = '254' + phone;
+  // Normalize phone to strictly 254XXXXXXXXX format
+  phone = phone.replace(/\D/g, ''); // Remove non-numeric characters
+  if (phone.startsWith("254")) phone = "0" + phone.slice(3);
+  if (phone.startsWith("7") || phone.startsWith("1")) phone = "0" + phone;
 
   const endpoint = 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush';
   const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHMMSS
@@ -269,7 +244,6 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   const tillNumber = process.env.BUNI_MERCHANT_CODE || "8125462";
   const uniqueRef = `KALMOT${Date.now().toString().slice(-6)}`;
   const userName = req.session.user?.fullname || "Customer";
-  const callbackUrl = process.env.BUNI_CALLBACK_URL || 'https://certification-portal-backend-6pno.onrender.com/buni-callback';
 
   try {
     await axios.post(endpoint, {
@@ -278,11 +252,9 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
       Amount: '200',
       Currency: 'KES',
       InvoiceNumber: `${tillNumber}-${uniqueRef}`,
-      PhoneNumber: phone,
-      MSISDN: phone,
       CustomerMSISDN: phone,
       CustomerName: userName,
-      CallBackURL: callbackUrl,
+      CallBackURL: process.env.BUNI_CALLBACK_URL,
       Timestamp: timestamp,
       Remark: 'Certification Access Fee'
     }, {
@@ -307,51 +279,41 @@ app.post('/buni-callback', async (req, res) => {
   const payload = req.body;
   console.log("💰 KCB Buni callback received:", JSON.stringify(payload));
 
-  const resultCode = payload?.ResultCode || payload?.resultCode || payload?.Body?.stkCallback?.ResultCode;
-  
+  const resultCode = payload?.ResultCode || payload?.resultCode;
   if (resultCode === '0' || resultCode === 0) {
-    const reference = payload?.ReferenceCode || payload?.CheckoutRequestID;
-    console.log("✅ KCB Buni payment confirmed:", reference);
+    const phone = payload?.CustomerMSISDN || payload?.MSISDN || payload?.PhoneNumber;
+    console.log("✅ KCB Buni payment confirmed:", payload?.CheckoutRequestID || payload?.ReferenceCode, "Phone:", phone);
 
-    // If customer phone/email is returned in payload, update DB user paid state
-    const customerPhone = payload?.CustomerMSISDN || payload?.MSISDN || payload?.PhoneNumber;
-    if (customerPhone) {
-      let normalizedPhone = String(customerPhone).replace(/\D/g, '');
-      if (normalizedPhone.startsWith('0')) normalizedPhone = '254' + normalizedPhone.slice(1);
-      
+    if (phone) {
       try {
-        await User.findOneAndUpdate({ phone: normalizedPhone }, { paid: true });
-        console.log(`✅ Marked user with phone ${normalizedPhone} as paid.`);
-      } catch (dbErr) {
-        console.error("Error updating user payment status in DB:", dbErr);
+        // Normalize phone to match DB format
+        let normalizedPhone = String(phone).replace(/\D/g, '');
+        if (normalizedPhone.startsWith('254')) normalizedPhone = '0' + normalizedPhone.slice(3);
+
+        const user = await User.findOneAndUpdate(
+          { $or: [{ phone: normalizedPhone }, { phone: phone }] },
+          { paid: true, paidAt: new Date() },
+          { new: true }
+        );
+        if (user) {
+          console.log(`✅ Marked user ${user.email} as paid in DB`);
+        } else {
+          console.log(`⚠️ No user found for phone ${phone} — payment confirmed but user not updated`);
+        }
+      } catch (err) {
+        console.error("DB update error on callback:", err.message);
       }
     }
   } else {
     console.log(`❌ KCB Buni payment failed [Code ${resultCode}]`);
   }
-
   res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
 });
 
 // Safe PDF Layout Generator Route
-app.get('/certificate', async (req, res) => {
+app.get('/certificate', (req, res) => {
   if (!req.session.user) return res.status(401).send("⚠️ Not logged in.");
-
-  // Re-verify payment status from DB if non-admin
-  if (!req.session.user.isAdmin) {
-    try {
-      const freshUser = await User.findById(req.session.user.id);
-      if (freshUser && freshUser.paid) {
-        req.session.user.paid = true;
-      }
-    } catch (e) {
-      console.error("User lookup failed:", e);
-    }
-  }
-
-  if (!req.session.user.paid && !req.session.user.isAdmin) {
-    return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
-  }
+  if (!req.session.user.paid && !req.session.user.isAdmin) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
 
   const { fullname, specialization } = req.session.user;
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -362,10 +324,8 @@ app.get('/certificate', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=certificate.pdf');
     doc.pipe(res);
 
-    const bgImagePath = path.join(__dirname, 'assets/certbackground.png');
-    if (fs.existsSync(bgImagePath)) {
-      doc.image(bgImagePath, 0, 0, { width: doc.page.width, height: doc.page.height });
-    }
+    doc.image(path.join(__dirname, 'assets/certbackground.png'),
+      0, 0, { width: doc.page.width, height: doc.page.height });
 
     doc.font('Times-Roman').fillColor('black');
     doc.fontSize(22).text(fullname, 0, 260, { align: 'center', underline: true });
