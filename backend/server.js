@@ -232,10 +232,11 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   if (req.session.user.isAdmin) {
   }
 
-  // Normalize phone to strictly 254XXXXXXXXX format
-  phone = phone.replace(/\D/g, ''); // Remove non-numeric characters
-  if (phone.startsWith("254")) phone = "0" + phone.slice(3);
-  if (phone.startsWith("7") || phone.startsWith("1")) phone = "0" + phone;
+  // Normalize phone to 254XXXXXXXXX for KCB Buni
+  phone = phone.replace(/\D/g, '');
+  if (phone.startsWith("0")) phone = "254" + phone.slice(1);
+  if (phone.startsWith("7") || phone.startsWith("1")) phone = "254" + phone;
+  console.log("📱 Sending STK Push to phone:", phone);
 
   const endpoint = 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush';
   const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHMMSS
