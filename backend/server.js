@@ -322,9 +322,74 @@ app.post('/buni-callback', async (req, res) => {
   res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
 });
 
+
+// M-PESA Code Manual Verification Route
+app.post('/verify-mpesa', async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ success: false, message: 'Not logged in.' });
+
+  let { mpesaCode, phone } = req.body;
+  if (!mpesaCode || !phone) return res.status(400).json({ success: false, message: 'M-PESA code and phone number are required.' });
+
+  mpesaCode = mpesaCode.trim().toUpperCase();
+  phone = String(phone).replace(/\D/g, '');
+  if (phone.startsWith('254')) phone = '0' + phone.slice(3);
+
+  // Validate format: M-PESA codes are 10 alphanumeric chars
+  if (!/^[A-Z0-9]{10}$/.test(mpesaCode)) {
+    return res.status(400).json({ success: false, message: 'Invalid M-PESA code format. It should be 10 characters like UHQDC4FLXC.' });
+  }
+
+  try {
+    // Check if this code was already used by someone else
+    const existing = await User.findOne({ mpesaCode });
+    if (existing) {
+      if (existing.email === req.session.user.email) {
+        return res.status(400).json({ success: false, message: 'This M-PESA code has already been used to unlock your certificate.' });
+      }
+      return res.status(400).json({ success: false, message: 'This M-PESA code has already been used.' });
+    }
+
+    // Check phone matches what was used for the STK push
+    const user = await User.findOne({ email: req.session.user.email });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    // Normalize stored phone for comparison
+    let storedPhone = String(user.phone).replace(/\D/g, '');
+    if (storedPhone.startsWith('254')) storedPhone = '0' + storedPhone.slice(3);
+
+    if (phone !== storedPhone) {
+      return res.status(400).json({ success: false, message: `The phone number you entered (${phone}) does not match your registered number (${storedPhone}). The M-PESA payment must come from your registered phone.` });
+    }
+
+    // All checks passed — unlock certificate
+    await User.findOneAndUpdate(
+      { email: req.session.user.email },
+      { paid: true, paidAt: new Date(), mpesaCode, mpesaPhone: phone }
+    );
+    req.session.user.paid = true;
+
+    res.json({ success: true, message: '✅ Payment verified! Your certificate is now unlocked.' });
+
+  } catch (err) {
+    console.error('M-PESA verification error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error during verification.' });
+  }
+});
+
 // Safe PDF Layout Generator Route
-app.get('/certificate', (req, res) => {
+app.get('/certificate', async (req, res) => {
   if (!req.session.user) return res.status(401).send("⚠️ Not logged in.");
+
+  // Re-check DB in case callback updated paid status after session was created
+  if (!req.session.user.isAdmin && !req.session.user.paid) {
+    try {
+      const freshUser = await User.findOne({ email: req.session.user.email });
+      if (freshUser && freshUser.paid) {
+        req.session.user.paid = true; // sync session
+      }
+    } catch (e) { /* continue */ }
+  }
+
   if (!req.session.user.paid && !req.session.user.isAdmin) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
 
   const { fullname, specialization } = req.session.user;

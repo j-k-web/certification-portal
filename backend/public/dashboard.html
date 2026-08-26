@@ -7,8 +7,8 @@
 </head>
 <body>
 <!-- 🌐 HORIZONTAL TOP NAVIGATION BAR -->
-<header class="top-navbar">
-  <div class="nav-left">
+<header class="top-navbar" style="overflow-x:auto; flex-wrap:nowrap;">
+  <div class="nav-left" style="overflow-x:auto; flex-wrap:nowrap; min-width:0; flex:1;">
     <!-- Home button always visible -->
     <button onclick="showSection('home')" class="nav-btn">Home</button>
 
@@ -2553,10 +2553,24 @@
           This payment confirms your participation in the National Youth Technology Program.
         </p>
 
-        <button id="payButton" class="submit">Pay Ksh 200 to Unlock</button>
+          <button id="payButton" class="submit">Pay Ksh 200 to Unlock</button>
       </div>
 
       <div id="paymentStatus" class="payment-status"></div>
+
+      <!-- M-PESA Manual Code Verification -->
+      <div id="mpesaVerifyBox" style="display:none; margin-top:18px; padding:18px; background:#f0faf0; border:1px solid #b2dfdb; border-radius:10px;">
+        <p style="font-weight:bold; color:#2e7d32; margin-bottom:10px;">📩 Already paid? Enter your M-PESA confirmation code to unlock your certificate instantly.</p>
+        <p style="font-size:13px; color:#555; margin-bottom:12px;">Example code format: <strong>UHQDC4FLXC</strong> — found in the M-PESA SMS you received after payment.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <input id="mpesaCodeInput" type="text" maxlength="10" placeholder="e.g. UHQDC4FLXC"
+            style="padding:10px 14px; border:1px solid #ccc; border-radius:6px; font-size:15px; text-transform:uppercase; width:200px; letter-spacing:2px;" />
+          <input id="mpesaPhoneInput" type="text" maxlength="12" placeholder="e.g. 0712345678"
+            style="padding:10px 14px; border:1px solid #ccc; border-radius:6px; font-size:15px; width:160px;" />
+          <button id="verifyMpesaBtn" class="submit" style="padding:10px 20px;">Verify &amp; Unlock</button>
+        </div>
+        <div id="mpesaVerifyStatus" style="margin-top:10px; font-size:14px;"></div>
+      </div>
 
       <div id="certificatePreviewShell" class="certificate-preview-shell" style="display: none;">
         <div class="certificate-preview-head">
@@ -2785,6 +2799,22 @@
   // ==========================================
   // 📲 KCB BUNI PAYMENT PIPELINE
   // ==========================================
+  // ── Shared function to render the certificate ──
+  function renderCertificate(blob) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.getElementById("downloadLink");
+    const previewShell = document.getElementById("certificatePreviewShell");
+    const previewFrame = document.getElementById("certificatePreview");
+    link.href = url;
+    link.style.display = "inline-flex";
+    previewFrame.src = url;
+    previewShell.style.display = "block";
+    // Hide the payment and verify boxes once done
+    document.getElementById("paymentPromptContainer").style.display = "none";
+    document.getElementById("mpesaVerifyBox").style.display = "none";
+  }
+
+  // ── STK Push button ──
   document.getElementById("payButton").addEventListener("click", async () => {
     const phone = prompt("Enter your M-PESA phone number (e.g. 0712345678):");
     if (!phone) return;
@@ -2803,21 +2833,25 @@
 
       if (!data.success) {
         document.getElementById("paymentStatus").innerHTML =
-          "<p style='color:red;'>❌ Payment failed. Please try again.</p>";
+          "<p style='color:red;'>❌ " + (data.message || "Payment failed. Please try again.") + "</p>";
         return;
       }
 
       document.getElementById("paymentStatus").innerHTML =
         "<p style='color:#e67e22; font-weight:bold;'>Check your phone and enter your M-PESA PIN to complete the transaction.</p>";
 
+      // Show manual code entry box
+      document.getElementById("mpesaVerifyBox").style.display = "block";
+      document.getElementById("mpesaPhoneInput").value = phone;
+
       let pollCount = 0;
-      const maxPolls = 24; // 2 minutes max (24 x 5s)
+      const maxPolls = 24; // 2 minutes
 
       const checkPayment = async () => {
         pollCount++;
         if (pollCount > maxPolls) {
           document.getElementById("paymentStatus").innerHTML =
-            "<p style='color:red;'>⏱️ Payment confirmation timed out. If you completed payment, please refresh the page.</p>";
+            "<p style='color:#e67e22;'>⏱️ Auto-check timed out. Please use the M-PESA code box below to unlock your certificate.</p>";
           return;
         }
         try {
@@ -2826,14 +2860,7 @@
             document.getElementById("paymentStatus").innerHTML =
               "<p style='color:green; font-weight:bold;'>✅ Payment confirmed! Your certificate is ready.</p>";
             const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.getElementById("downloadLink");
-            const previewShell = document.getElementById("certificatePreviewShell");
-            const previewFrame = document.getElementById("certificatePreview");
-            link.href = url;
-            link.style.display = "inline-flex";
-            previewFrame.src = url;
-            previewShell.style.display = "block";
+            renderCertificate(blob);
           } else {
             setTimeout(checkPayment, 5000);
           }
@@ -2842,12 +2869,53 @@
         }
       };
 
-      // Wait 15s before first poll — give user time to enter PIN
       setTimeout(checkPayment, 15000);
 
     } catch (err) {
       document.getElementById("paymentStatus").innerHTML =
         "<p style='color:red;'>❌ Payment failed. Please try again.</p>";
+    }
+  });
+
+  // ── M-PESA Manual Code Verification ──
+  document.getElementById("verifyMpesaBtn").addEventListener("click", async () => {
+    const code = document.getElementById("mpesaCodeInput").value.trim().toUpperCase();
+    const phone = document.getElementById("mpesaPhoneInput").value.trim();
+    const statusEl = document.getElementById("mpesaVerifyStatus");
+
+    if (!code || code.length !== 10) {
+      statusEl.innerHTML = "<span style='color:red;'>Please enter a valid 10-character M-PESA code.</span>";
+      return;
+    }
+    if (!phone) {
+      statusEl.innerHTML = "<span style='color:red;'>Please enter the phone number used for payment.</span>";
+      return;
+    }
+
+    statusEl.innerHTML = "<span style='color:#e67e22;'>Verifying...</span>";
+
+    try {
+      const res = await fetch("/verify-mpesa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mpesaCode: code, phone })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        statusEl.innerHTML = "<span style='color:green; font-weight:bold;'>✅ Verified! Generating your certificate...</span>";
+        const certRes = await fetch("/certificate");
+        if (certRes.ok) {
+          const blob = await certRes.blob();
+          renderCertificate(blob);
+          document.getElementById("paymentStatus").innerHTML =
+            "<p style='color:green; font-weight:bold;'>✅ Certificate unlocked successfully!</p>";
+        }
+      } else {
+        statusEl.innerHTML = "<span style='color:red;'>❌ " + data.message + "</span>";
+      }
+    } catch (err) {
+      statusEl.innerHTML = "<span style='color:red;'>❌ Verification failed. Please try again.</span>";
     }
   });
 
