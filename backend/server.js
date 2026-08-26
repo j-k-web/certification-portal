@@ -230,35 +230,32 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   let { phone } = req.body;
 
   if (req.session.user.isAdmin) {
+    req.session.user.paid = true;
+    return res.json({ success: true, message: 'Admin access granted.' });
   }
 
   // Normalize phone to 254XXXXXXXXX for KCB Buni
   phone = phone.replace(/\D/g, '');
-  if (phone.startsWith("0")) phone = "254" + phone.slice(1);
-  if (phone.startsWith("7") || phone.startsWith("1")) phone = "254" + phone;
-  console.log("📱 Sending STK Push to phone:", phone);
+  if (phone.startsWith('0')) phone = '254' + phone.slice(1);
+  if (phone.startsWith('7') || phone.startsWith('1')) phone = '254' + phone;
+  console.log('📱 Sending STK Push to phone:', phone);
 
   const endpoint = 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush';
-  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHMMSS
-
-  // Merchant shortcode and unique reference
-  const tillNumber = process.env.BUNI_MERCHANT_CODE || "8125462";
+  const tillNumber = process.env.BUNI_MERCHANT_CODE || '8125462';
   const uniqueRef = `KALMOT${Date.now().toString().slice(-6)}`;
-  const userName = req.session.user?.fullname || "Customer";
+
+  const payload = {
+    phoneNumber: phone,
+    amount: '200',
+    invoiceNumber: tillNumber + '-' + uniqueRef,
+    callbackUrl: process.env.BUNI_CALLBACK_URL,
+    merchantCode: tillNumber,
+    remark: 'Certification Access Fee'
+  };
+  console.log('📦 KCB Buni Payload:', JSON.stringify(payload));
 
   try {
-    await axios.post(endpoint, {
-      MerchantCode: tillNumber,
-      ReferenceCode: uniqueRef,
-      Amount: '200',
-      Currency: 'KES',
-      InvoiceNumber: `${tillNumber}-${uniqueRef}`,
-      CustomerMSISDN: phone,
-      CustomerName: userName,
-      CallBackURL: process.env.BUNI_CALLBACK_URL,
-      Timestamp: timestamp,
-      Remark: 'Certification Access Fee'
-    }, {
+    await axios.post(endpoint, payload, {
       headers: {
         Authorization: `Bearer ${req.buniToken}`,
         'Content-Type': 'application/json'
