@@ -247,10 +247,12 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   const payload = {
     phoneNumber: phone,
     amount: '200',
-    invoiceNumber: tillNumber + '-' + uniqueRef,
+    invoiceNumber: tillNumber + '-KALMOT-' + Date.now(),
+    sharedShortCode: true,
+    orgShortCode: '',
+    orgPassKey: '',
     callbackUrl: process.env.BUNI_CALLBACK_URL,
-    merchantCode: tillNumber,
-    remark: 'Certification Access Fee'
+    transactionDescription: 'Certification Access Fee'
   };
   console.log('📦 KCB Buni Payload:', JSON.stringify(payload));
 
