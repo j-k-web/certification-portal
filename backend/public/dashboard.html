@@ -2850,8 +2850,8 @@
       const checkPayment = async () => {
         pollCount++;
         if (pollCount > maxPolls) {
-          document.getElementById("paymentStatus").innerHTML =
-            "<p style='color:#e67e22;'>⏱️ Auto-check timed out. Please use the M-PESA code box below to unlock your certificate.</p>";
+          // Auto-reload so the certificate shows immediately if payment went through
+          window.location.reload();
           return;
         }
         try {
