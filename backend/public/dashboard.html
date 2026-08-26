@@ -2553,7 +2553,7 @@
           This payment confirms your participation in the National Youth Technology Program.
         </p>
 
-        <button id="payButton" class="submit">Pay Ksh 200 via KCB Buni to Unlock Certificate</button>
+        <button id="payButton" class="submit">Pay Ksh 200 to Unlock</button>
       </div>
 
       <div id="paymentStatus" class="payment-status"></div>
@@ -2786,8 +2786,11 @@
   // 📲 KCB BUNI PAYMENT PIPELINE
   // ==========================================
   document.getElementById("payButton").addEventListener("click", async () => {
-    const phone = prompt("Enter your KCB Buni-linked phone number (format: 2547XXXXXXXX):");
+    const phone = prompt("Enter your M-PESA phone number (e.g. 0712345678):");
     if (!phone) return;
+
+    document.getElementById("paymentStatus").innerHTML =
+      "<p style='color:#e67e22; font-weight:bold;'>Sending payment request...</p>";
 
     try {
       const response = await fetch("/pay", {
@@ -2797,37 +2800,54 @@
       });
 
       const data = await response.json();
-      document.getElementById("paymentStatus").innerHTML = 
-        "<p style='color:#e67e22; font-weight:bold;'>📲 KCB Buni STK Push sent. Check your phone and enter your KCB PIN to complete the Ksh 200 payment...</p>";
 
-      // Polling cycle to wait for confirmation response hook
+      if (!data.success) {
+        document.getElementById("paymentStatus").innerHTML =
+          "<p style='color:red;'>❌ Payment failed. Please try again.</p>";
+        return;
+      }
+
+      document.getElementById("paymentStatus").innerHTML =
+        "<p style='color:#e67e22; font-weight:bold;'>Check your phone and enter your M-PESA PIN to complete the transaction.</p>";
+
+      let pollCount = 0;
+      const maxPolls = 24; // 2 minutes max (24 x 5s)
+
       const checkPayment = async () => {
-        const res = await fetch("/certificate");
-        
-        if (res.ok) {
-          document.getElementById("paymentStatus").innerHTML = 
-            "<p style='color:green; font-weight:bold;'>✅ Verification complete! Digital processing cleared. Access granted below.</p>";
-          
-          const blob = await res.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.getElementById("downloadLink");
-          const previewShell = document.getElementById("certificatePreviewShell");
-          const previewFrame = document.getElementById("certificatePreview");
-          
-          link.href = url;
-          link.style.display = "inline-flex";
-          previewFrame.src = url;
-          previewShell.style.display = "block";
-        } else {
+        pollCount++;
+        if (pollCount > maxPolls) {
+          document.getElementById("paymentStatus").innerHTML =
+            "<p style='color:red;'>⏱️ Payment confirmation timed out. If you completed payment, please refresh the page.</p>";
+          return;
+        }
+        try {
+          const res = await fetch("/certificate");
+          if (res.ok) {
+            document.getElementById("paymentStatus").innerHTML =
+              "<p style='color:green; font-weight:bold;'>✅ Payment confirmed! Your certificate is ready.</p>";
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.getElementById("downloadLink");
+            const previewShell = document.getElementById("certificatePreviewShell");
+            const previewFrame = document.getElementById("certificatePreview");
+            link.href = url;
+            link.style.display = "inline-flex";
+            previewFrame.src = url;
+            previewShell.style.display = "block";
+          } else {
+            setTimeout(checkPayment, 5000);
+          }
+        } catch (e) {
           setTimeout(checkPayment, 5000);
         }
       };
-      
-      checkPayment();
+
+      // Wait 15s before first poll — give user time to enter PIN
+      setTimeout(checkPayment, 15000);
 
     } catch (err) {
-      document.getElementById("paymentStatus").innerHTML = 
-        "<p style='color:red;'>❌ KCB Buni payment failed. Please retry.</p>";
+      document.getElementById("paymentStatus").innerHTML =
+        "<p style='color:red;'>❌ Payment failed. Please try again.</p>";
     }
   });
 

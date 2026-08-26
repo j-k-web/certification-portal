@@ -257,14 +257,20 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   console.log('📦 KCB Buni Payload:', JSON.stringify(payload));
 
   try {
-    await axios.post(endpoint, payload, {
+    const stkRes = await axios.post(endpoint, payload, {
       headers: {
         Authorization: `Bearer ${req.buniToken}`,
         'Content-Type': 'application/json'
       }
     });
 
-    res.json({ success: true, message: "📲 KCB Buni STK Push sent. Check your phone and enter your PIN." });
+    // Save CheckoutRequestID to user record so callback can match and unlock
+    const checkoutID = stkRes.data?.response?.CheckoutRequestID;
+    if (checkoutID) {
+      await User.findOneAndUpdate({ email: req.session.user.email }, { buniCheckoutID: checkoutID });
+      req.session.user.buniCheckoutID = checkoutID;
+    }
+    res.json({ success: true, message: 'stk_sent' });
   } catch (err) {
     console.error("KCB Buni STK Push Error: ", err.response?.data || err.message);
     res.status(500).json({ 
@@ -277,35 +283,41 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
 // KCB Buni Payment Callback Webhook
 app.post('/buni-callback', async (req, res) => {
   const payload = req.body;
-  console.log("💰 KCB Buni callback received:", JSON.stringify(payload));
+  console.log('💰 KCB Buni callback received:', JSON.stringify(payload));
 
-  const resultCode = payload?.ResultCode || payload?.resultCode;
-  if (resultCode === '0' || resultCode === 0) {
-    const phone = payload?.CustomerMSISDN || payload?.MSISDN || payload?.PhoneNumber;
-    console.log("✅ KCB Buni payment confirmed:", payload?.CheckoutRequestID || payload?.ReferenceCode, "Phone:", phone);
+  const resultCode = payload?.Body?.stkCallback?.ResultCode ?? payload?.ResultCode ?? payload?.resultCode;
+  const checkoutID = payload?.Body?.stkCallback?.CheckoutRequestID || payload?.CheckoutRequestID;
 
-    if (phone) {
-      try {
-        // Normalize phone to match DB format
-        let normalizedPhone = String(phone).replace(/\D/g, '');
-        if (normalizedPhone.startsWith('254')) normalizedPhone = '0' + normalizedPhone.slice(3);
+  if (resultCode === 0 || resultCode === '0') {
+    console.log('✅ Payment confirmed. CheckoutRequestID:', checkoutID);
+    try {
+      // Match by CheckoutRequestID (most reliable)
+      let user = checkoutID
+        ? await User.findOneAndUpdate({ buniCheckoutID: checkoutID }, { paid: true, paidAt: new Date() }, { new: true })
+        : null;
 
-        const user = await User.findOneAndUpdate(
-          { $or: [{ phone: normalizedPhone }, { phone: phone }] },
-          { paid: true, paidAt: new Date() },
-          { new: true }
-        );
-        if (user) {
-          console.log(`✅ Marked user ${user.email} as paid in DB`);
-        } else {
-          console.log(`⚠️ No user found for phone ${phone} — payment confirmed but user not updated`);
+      // Fallback: match by phone number
+      if (!user) {
+        const phone = payload?.Body?.stkCallback?.CallbackMetadata?.Item?.find(i => i.Name === 'PhoneNumber')?.Value
+          || payload?.CustomerMSISDN || payload?.MSISDN || payload?.PhoneNumber;
+        if (phone) {
+          let normalized = String(phone).replace(/\D/g, '');
+          if (normalized.startsWith('254')) normalized = '0' + normalized.slice(3);
+          user = await User.findOneAndUpdate(
+            { $or: [{ phone: normalized }, { phone: String(phone) }] },
+            { paid: true, paidAt: new Date() },
+            { new: true }
+          );
         }
-      } catch (err) {
-        console.error("DB update error on callback:", err.message);
       }
+
+      if (user) console.log(`✅ Unlocked certificate for ${user.email}`);
+      else console.log('⚠️ Payment confirmed but no matching user found');
+    } catch (err) {
+      console.error('DB update error on callback:', err.message);
     }
   } else {
-    console.log(`❌ KCB Buni payment failed [Code ${resultCode}]`);
+    console.log(`❌ Payment failed or cancelled [ResultCode: ${resultCode}]`);
   }
   res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
 });
