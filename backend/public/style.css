@@ -397,7 +397,7 @@ input:focus, select:focus {
 .question p {
   font-weight: bold;
   margin-bottom: 10px;
-  text-align: center;
+  text-align: left;
 }
 
 .question label {
@@ -429,8 +429,9 @@ input:focus, select:focus {
 }
 
 button.submit {
+  display: block;
+  margin: 15px auto 0;
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  margin-top: 15px;
   padding: 10px 20px;
   color: #fff;
   border: none;
