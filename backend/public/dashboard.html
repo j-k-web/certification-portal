@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Certification Portal Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Link to external CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -2559,16 +2560,16 @@
         🔄 Refresh / Check Payment Status
       </button>
 
-      <!-- M-PESA Manual Code Verification -->
-      <div id="mpesaVerifyBox" style="display:none; margin-top:18px; padding:18px; background:#f0faf0; border:1px solid #b2dfdb; border-radius:10px;">
-        <p style="font-weight:bold; color:#2e7d32; margin-bottom:10px;">📩 Already paid? Enter your M-PESA confirmation code to unlock your certificate instantly.</p>
-        <p style="font-size:13px; color:#555; margin-bottom:12px;">Example code format: <strong>UHQDC.....</strong> — found in the M-PESA SMS you received after payment.</p>
+      <!-- M-PESA Manual Code Verification — fallback path only, used if auto-unlock hasn't kicked in yet -->
+      <div id="mpesaVerifyBox" style="display:none; margin-top:22px; padding-top:18px; border-top:1px dashed #d0d7de;">
+        <p style="font-weight:600; color:#556; margin-bottom:4px;">Didn't unlock automatically?</p>
+        <p style="font-size:13px; color:#777; margin-bottom:12px;">This should happen on its own within a few seconds of paying. If it's been a while, you can unlock manually with your M-PESA confirmation code — found in the SMS you received after payment (format like <strong>UHQDC.....</strong>).</p>
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           <input id="mpesaCodeInput" type="text" maxlength="10" placeholder="e.g. UHQDC....."
             style="padding:10px 14px; border:1px solid #ccc; border-radius:6px; font-size:15px; text-transform:uppercase; width:200px; letter-spacing:2px;" />
           <input id="mpesaPhoneInput" type="text" maxlength="12" placeholder="e.g. 0712345678"
             style="padding:10px 14px; border:1px solid #ccc; border-radius:6px; font-size:15px; width:160px;" />
-          <button id="verifyMpesaBtn" class="submit" style="padding:10px 20px;">Verify &amp; Unlock</button>
+          <button id="verifyMpesaBtn" class="submit" style="padding:10px 20px; background:#607d8b;">Verify &amp; Unlock</button>
         </div>
         <div id="mpesaVerifyStatus" style="margin-top:10px; font-size:14px;"></div>
       </div>
@@ -2813,6 +2814,8 @@
     // Hide the payment and verify boxes once done
     document.getElementById("paymentPromptContainer").style.display = "none";
     document.getElementById("mpesaVerifyBox").style.display = "none";
+    document.getElementById("refreshStatusBtn").style.display = "none";
+    previewShell.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   // ── Shared: ask the server if payment has cleared yet, and render the cert if so ──
@@ -2838,7 +2841,7 @@
 
       if (data.success && data.paid) {
         statusEl.innerHTML =
-          "<p style='color:green; font-weight:bold;'>✅ Payment confirmed! Your certificate is ready.</p>";
+          "<p style='color:green; font-weight:bold;'>✅ Payment successful! Your certificate is unlocked.</p>";
         const certRes = await fetch("/certificate");
         if (certRes.ok) {
           const blob = await certRes.blob();
@@ -2870,7 +2873,7 @@
 
   function startPolling() {
     let pollCount = 0;
-    const maxPolls = 40; // ~5 minutes of background polling
+    const maxPolls = 60; // ~5 minutes of background polling at 5s apart, after a quick first check
 
     const loop = async () => {
       pollCount++;
@@ -2886,7 +2889,9 @@
       pollTimer = setTimeout(loop, 5000);
     };
 
-    pollTimer = setTimeout(loop, 15000);
+    // First check comes quickly — STK confirmations are usually done within
+    // seconds of the user entering their PIN — then settle into a steady 5s cadence.
+    pollTimer = setTimeout(loop, 4000);
   }
 
   // ── STK Push button ──
@@ -2913,7 +2918,7 @@
       }
 
       document.getElementById("paymentStatus").innerHTML =
-        "<p style='color:#e67e22; font-weight:bold;'>Check your phone and enter your M-PESA PIN to complete the transaction.</p>";
+        "<p style='color:#e67e22; font-weight:bold;'>Check your phone and enter your M-PESA PIN. Your certificate will unlock automatically once payment is confirmed — no further action needed.</p>";
 
       // Show manual code entry box + refresh button, and remember we're mid-payment
       // so a page reload doesn't lose this state.
