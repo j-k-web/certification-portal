@@ -24,17 +24,7 @@ body {
   transition: background 0.3s ease-in-out;
 }
 
-/* 🏞️ Dynamically show the background image ONLY when the home section is active on the page */
-body:has(#home.active) {
-  background-image:
-    linear-gradient(rgba(9, 28, 48, 0.4), rgba(9, 28, 48, 0.5)),
-    linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.18)),
-    url('tao.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
+/* Background image removed per request — Home section now uses the plain page background */
 
 /* ==========================================
    🌐 TOP NAVIGATION BAR
@@ -548,7 +538,20 @@ button.submit:hover {
     font-size: 20px;
   }
   #home p {
-    font-size: 20px;
+    font-size: 15.5px;
+    line-height: 1.55;
+  }
+  .home-glass-card {
+    padding: 18px;
+    border-radius: 14px;
+  }
+  .home-image {
+    margin-top: 16px;
+  }
+  #home img, .content img {
+    max-height: 260px;
+    margin-top: 16px;
+    border-radius: 10px;
   }
   #certificatePreview {
     min-height: 420px;
