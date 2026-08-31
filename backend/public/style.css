@@ -178,20 +178,14 @@ section h2 {
   font-size: 22px;
   box-shadow: 0 6px 14px rgba(29, 78, 216, 0.2);
   width: 100%;
-  overflow: hidden;
   letter-spacing: 0.01em;
 }
 
 .moving-heading {
   display: block;
   width: 100%;
-  white-space: nowrap;
-  animation: moveText 18s linear infinite;
-}
-
-@keyframes moveText {
-  0%   { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+  white-space: normal;
+  line-height: 1.4;
 }
 
 /* ==========================================
