@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Certification Portal Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Link to external CSS -->
@@ -2758,12 +2759,19 @@
     }
 
     let percentage = (score / total) * 100;
+    const passMark = Math.ceil(total / 2); // 10 out of 20
 
     if (attempted === 0) {
       document.getElementById("certMessage").innerHTML = 
         `<h3 style='color:red;'>⚠️ You must attempt the examination module before accessing processing clearance.</h3>`;
       return;
     }
+
+    // The result box lives inside whichever specialization section is currently
+    // on screen — scoped this way because every quiz form reuses the same
+    // element id, so a plain getElementById would always grab the first one
+    // in the page instead of the one the user is actually looking at.
+    const activeResultBox = document.querySelector('.section.active #result');
 
     if (percentage >= 50) {
       // Get the clean user-friendly course specification name
@@ -2773,6 +2781,12 @@
       const courseSpan = document.getElementById("userCourse");
       if (courseSpan) {
         courseSpan.textContent = readableCourse;
+      }
+
+      if (activeResultBox) {
+        activeResultBox.innerHTML =
+          `<h3 style='color:green; margin-top:14px;'>🎉 Congratulations! You passed with a score of ${score}/${total}. Redirecting you to unlock your certificate...</h3>`;
+        activeResultBox.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
       // Update success message inside certMessage block
@@ -2786,11 +2800,14 @@
       }
       
       document.getElementById("payButton").style.display = "inline-block";
-      showSection('certification');
+      setTimeout(() => showSection('certification'), 1400);
     } else {
-      document.getElementById("certMessage").innerHTML = 
-        `<h3 style='color:red;'>❌ Evaluation unsuccessful. Total score: ${score}/${total} (${percentage}%). Minimum metric required is 50%. Please re-evaluate.</h3>`;
-      
+      if (activeResultBox) {
+        activeResultBox.innerHTML =
+          `<h3 style='color:red; margin-top:14px;'>❌ You failed. You scored ${score}/${total} — you need at least ${passMark}/${total} (50%) to pass. Please go through the training notes again and try the quiz again.</h3>`;
+        activeResultBox.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
       // Ensure payment prompt stays hidden if they fail
       const promptContainer = document.getElementById("paymentPromptContainer");
       if (promptContainer) {
