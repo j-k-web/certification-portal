@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KALMOT Tech Academy</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+<div class="auth-container">
+  <div class="auth-logo">
+    <div class="logo-icon">K</div>
+    <h1>KALMOT Tech Academy</h1>
+    <p>Online Technical Skills Certification Platform</p>
+  </div>
+  <div class="auth-tabs">
+    <button class="tab-btn active" onclick="showTab('login')">Login</button>
+    <button class="tab-btn" onclick="showTab('register')">Register</button>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="loginTab" class="tab-content active">
+    <div id="loginMsg" class="msg"></div>
+    <input type="email" id="loginEmail" placeholder="Email Address" class="auth-input">
+    <input type="password" id="loginPass" placeholder="Password" class="auth-input">
+    <button class="auth-btn" onclick="doLogin()">Sign In</button>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="registerTab" class="tab-content">
+    <div id="regMsg" class="msg"></div>
+    <input type="text" id="regName" placeholder="Full Name" class="auth-input">
+    <input type="tel" id="regPhone" placeholder="Phone Number (e.g. 0712345678)" class="auth-input">
+    <input type="email" id="regEmail" placeholder="Email Address" class="auth-input">
+    <input type="password" id="regPass" placeholder="Password" class="auth-input">
+    <button class="auth-btn" onclick="doRegister()">Create Account</button>
+  </div>
+</div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (t==='login'&&i===0)||(t==='register'&&i===1)));
+  document.querySelectorAll('.tab-content').forEach((c,i) => c.classList.toggle('active', (t==='login'&&i===0)||(t==='register'&&i===1)));
+}
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPass').value;
+  const msg = document.getElementById('loginMsg');
+  try {
+    const res = await fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({email, password}) });
+    const data = await res.json();
+    if (data.success) { window.location.href = '/dashboard.html'; }
+    else { msg.className='msg error'; msg.textContent = data.message; }
+  } catch(e) { msg.className='msg error'; msg.textContent='Connection error.'; }
+}
+async function doRegister() {
+  const fullname = document.getElementById('regName').value;
+  const phone = document.getElementById('regPhone').value;
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPass').value;
+  const msg = document.getElementById('regMsg');
+  try {
+    const res = await fetch('/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({fullname, phone, email, password}) });
+    const data = await res.json();
+    if (data.success) { msg.className='msg success'; msg.textContent='Registered! Please log in.'; showTab('login'); }
+    else { msg.className='msg error'; msg.textContent = data.message; }
+  } catch(e) { msg.className='msg error'; msg.textContent='Connection error.'; }
+}
+document.addEventListener('keydown', e => { if(e.key==='Enter') { document.querySelector('.tab-content.active .auth-btn').click(); } });
+</script>
+</body>
+</html>
