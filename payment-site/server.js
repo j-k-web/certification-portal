@@ -14,21 +14,72 @@ app.use(express.static('public'));
 
 // KCB Buni Configuration
 const KCB_BUNI_CONFIG = {
-  apiKey: process.env.KCB_BUNI_API_KEY || 'your-api-key-here',
+  clientId: process.env.KCB_BUNI_CLIENT_ID || 'your-client-id',
+  clientSecret: process.env.KCB_BUNI_CLIENT_SECRET || 'your-client-secret',
   merchantCode: process.env.KCB_BUNI_MERCHANT_CODE || 'your-merchant-code',
-  apiUrl: process.env.KCB_BUNI_API_URL || 'https://api.kcbbuni.com/api/v1',
-  environment: process.env.ENVIRONMENT || 'sandbox' // sandbox or production
+  baseUrl: process.env.KCB_BUNI_BASE_URL || 'https://uat.buni.kcbgroup.com/mm',
+  environment: process.env.ENVIRONMENT || 'sandbox'
 };
+
+// Cache for access token
+let accessTokenCache = {
+  token: null,
+  expiresAt: 0
+};
+
+// Get KCB Buni Access Token
+async function getAccessToken() {
+  try {
+    // Check if token is still valid
+    if (accessTokenCache.token && accessTokenCache.expiresAt > Date.now()) {
+      console.log('✓ Using cached access token');
+      return accessTokenCache.token;
+    }
+
+    console.log('🔐 Requesting new access token...');
+    
+    const credentials = Buffer.from(`${KCB_BUNI_CONFIG.clientId}:${KCB_BUNI_CONFIG.clientSecret}`).toString('base64');
+    
+    const response = await axios.post(
+      'https://uat.buni.kcbgroup.com/token?grant_type=client_credentials',
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${credentials}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+
+    if (response.data && response.data.access_token) {
+      accessTokenCache.token = response.data.access_token;
+      accessTokenCache.expiresAt = Date.now() + (response.data.expires_in - 300) * 1000; // Refresh 5 mins before expiry
+      console.log('✓ Access token obtained successfully');
+      return response.data.access_token;
+    } else {
+      throw new Error('No access token in response');
+    }
+
+  } catch (error) {
+    console.error('Failed to get access token:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    throw error;
+  }
+}
 
 // Serve the payment page
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
-// Create KCB Buni checkout
+// Create KCB Buni STK Push payment
 app.post('/api/kcb-buni-checkout', async (req, res) => {
   try {
-    const { phoneNumber, amount, redirectUrl } = req.body;
+    const { phoneNumber, amount, invoiceNumber, transactionDescription } = req.body;
 
     // Validate input
     if (!phoneNumber || !amount) {
@@ -45,55 +96,68 @@ app.post('/api/kcb-buni-checkout', async (req, res) => {
       });
     }
 
-    // Generate unique order reference
-    const orderRef = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    console.log('Creating KCB Buni checkout:', {
-      orderRef,
+    console.log('Creating KCB Buni STK Push:', {
+      phoneNumber,
       amount: amountNum,
-      phoneNumber
+      invoiceNumber: invoiceNumber || 'N/A',
+      transactionDescription: transactionDescription || 'Payment'
     });
 
-    // Call KCB Buni API
+    // Get access token
+    const accessToken = await getAccessToken();
+
+    // Generate message ID
+    const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+    // Make STK Push request
     const response = await axios.post(
-      `${KCB_BUNI_CONFIG.apiUrl}/checkout/create`,
+      `${KCB_BUNI_CONFIG.baseUrl}/api/request/1.0.0/stkpush`,
       {
-        merchantCode: KCB_BUNI_CONFIG.merchantCode,
-        orderRef: orderRef,
-        amount: amountNum,
-        currency: 'KES',
         phoneNumber: phoneNumber,
-        description: 'Payment',
+        amount: amountNum.toString(),
+        invoiceNumber: invoiceNumber || `INV-${Date.now()}`,
+        sharedShortCode: true,
+        orgShortCode: '',
+        orgPassKey: '',
         callbackUrl: `${process.env.BASE_URL || 'http://localhost:3000'}/api/kcb-buni-callback`,
-        redirectUrl: redirectUrl || `${process.env.BASE_URL || 'http://localhost:3000'}`
+        transactionDescription: transactionDescription || 'Payment'
       },
       {
         headers: {
-          'Authorization': `Bearer ${KCB_BUNI_CONFIG.apiKey}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'routeCode': '207',
+          'operation': 'STKPush',
+          'messageId': messageId,
+          'accept': 'application/json'
         },
-        timeout: 10000
+        timeout: 15000
       }
     );
 
-    console.log('KCB Buni response:', response.data);
+    console.log('✓ STK Push initiated successfully:', {
+      responseCode: response.data?.responseCode,
+      responseDescription: response.data?.responseDescription,
+      checkoutRequestId: response.data?.checkoutRequestId
+    });
 
     res.json({
       success: true,
-      checkoutUrl: response.data.checkoutUrl,
-      orderRef: orderRef,
-      message: 'Checkout session created successfully'
+      message: 'STK Push initiated. Check your phone for the payment prompt.',
+      checkoutRequestId: response.data?.checkoutRequestId,
+      responseCode: response.data?.responseCode
     });
 
   } catch (error) {
     console.error('KCB Buni API Error:', {
       message: error.message,
       status: error.response?.status,
-      data: error.response?.data
+      data: error.response?.data,
+      config: error.config?.url
     });
 
     res.status(error.response?.status || 500).json({ 
-      error: error.response?.data?.message || error.message || 'Failed to initiate payment. Please try again.',
+      error: error.response?.data?.responseDescription || error.message || 'Failed to initiate payment. Please try again.',
       details: process.env.ENVIRONMENT === 'development' ? error.message : undefined
     });
   }
@@ -167,11 +231,13 @@ app.get('/api/config-check', (req, res) => {
   }
 
   res.json({
-    apiKeyConfigured: !!KCB_BUNI_CONFIG.apiKey && KCB_BUNI_CONFIG.apiKey !== 'your-api-key-here',
+    clientIdConfigured: !!KCB_BUNI_CONFIG.clientId && KCB_BUNI_CONFIG.clientId !== 'your-client-id',
+    clientSecretConfigured: !!KCB_BUNI_CONFIG.clientSecret && KCB_BUNI_CONFIG.clientSecret !== 'your-client-secret',
     merchantCodeConfigured: !!KCB_BUNI_CONFIG.merchantCode && KCB_BUNI_CONFIG.merchantCode !== 'your-merchant-code',
     environment: KCB_BUNI_CONFIG.environment,
-    apiUrl: KCB_BUNI_CONFIG.apiUrl,
-    baseUrl: process.env.BASE_URL || 'http://localhost:3000'
+    baseUrl: KCB_BUNI_CONFIG.baseUrl,
+    callbackUrl: process.env.BASE_URL || 'http://localhost:3000',
+    accessTokenCached: !!accessTokenCache.token && accessTokenCache.expiresAt > Date.now()
   });
 });
 
@@ -198,7 +264,8 @@ app.listen(PORT, () => {
 ╠════════════════════════════════════════╣
 ║  Environment: ${KCB_BUNI_CONFIG.environment.padEnd(26)} ║
 ║  Port: ${PORT.toString().padEnd(30)} ║
-║  API URL: ${KCB_BUNI_CONFIG.apiUrl.padEnd(25)} ║
+║  KCB Base: ${KCB_BUNI_CONFIG.baseUrl.padEnd(21)} ║
+║  Status: Ready to accept payments ✓   ║
 ╚════════════════════════════════════════╝
   `);
 });
