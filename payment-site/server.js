@@ -21,6 +21,12 @@ const KCB_BUNI_CONFIG = {
   environment: process.env.ENVIRONMENT || 'sandbox'
 };
 
+// Debug logging
+console.log('KCB Config Check:');
+console.log('  Client ID:', KCB_BUNI_CONFIG.clientId === 'your-client-id' ? '❌ PLACEHOLDER' : '✓ Loaded');
+console.log('  Client Secret:', KCB_BUNI_CONFIG.clientSecret === 'your-client-secret' ? '❌ PLACEHOLDER' : '✓ Loaded');
+console.log('  Merchant Code:', KCB_BUNI_CONFIG.merchantCode === 'your-merchant-code' ? '❌ PLACEHOLDER' : '✓ Loaded');
+
 // Cache for access token
 let accessTokenCache = {
   token: null,
@@ -45,7 +51,7 @@ async function getAccessToken() {
       {},
       {
         headers: {
-          'Authorization': `Bearer ${credentials}`,
+          'Authorization': `Basic ${credentials}`,
           'Content-Type': 'application/json'
         },
         timeout: 10000
