@@ -47,7 +47,7 @@ async function getAccessToken() {
     const credentials = Buffer.from(`${KCB_BUNI_CONFIG.clientId}:${KCB_BUNI_CONFIG.clientSecret}`).toString('base64');
     
     const response = await axios.post(
-      'https://uat.buni.kcbgroup.com/token?grant_type=client_credentials',
+      'https://api.buni.kcbgroup.com/token?grant_type=client_credentials',
       {},
       {
         headers: {
