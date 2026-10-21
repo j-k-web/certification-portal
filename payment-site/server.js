@@ -17,7 +17,7 @@ const KCB_BUNI_CONFIG = {
   clientId: process.env.KCB_BUNI_CLIENT_ID || 'your-client-id',
   clientSecret: process.env.KCB_BUNI_CLIENT_SECRET || 'your-client-secret',
   merchantCode: process.env.KCB_BUNI_MERCHANT_CODE || 'your-merchant-code',
-  baseUrl: process.env.KCB_BUNI_BASE_URL || 'https://uat.buni.kcbgroup.com/mm',
+  baseUrl: process.env.KCB_BUNI_BASE_URL || 'https://api.buni.kcbgroup.com/mm',
   environment: process.env.ENVIRONMENT || 'sandbox'
 };
 
@@ -60,7 +60,7 @@ async function getAccessToken() {
 
     if (response.data && response.data.access_token) {
       accessTokenCache.token = response.data.access_token;
-      accessTokenCache.expiresAt = Date.now() + (response.data.expires_in - 300) * 1000; // Refresh 5 mins before expiry
+      accessTokenCache.expiresAt = Date.now() + (response.data.expires_in - 300) * 1000;
       console.log('✓ Access token obtained successfully');
       return response.data.access_token;
     } else {
@@ -112,8 +112,9 @@ app.post('/api/kcb-buni-checkout', async (req, res) => {
     // Get access token
     const accessToken = await getAccessToken();
 
-    // Generate message ID
-    const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    console.log('📤 Sending STK Push request...');
+    console.log('  Token:', accessToken.substring(0, 20) + '...');
+    console.log('  Endpoint:', `${KCB_BUNI_CONFIG.baseUrl}/api/request/1.0.0/stkpush`);
 
     // Make STK Push request
     const response = await axios.post(
@@ -134,36 +135,43 @@ app.post('/api/kcb-buni-checkout', async (req, res) => {
           'Content-Type': 'application/json',
           'routeCode': '207',
           'operation': 'STKPush',
-          'messageId': messageId,
+          'messageId': `${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
           'accept': 'application/json'
         },
-        timeout: 15000
+        timeout: 30000
       }
     );
 
-    console.log('✓ STK Push initiated successfully:', {
-      responseCode: response.data?.responseCode,
-      responseDescription: response.data?.responseDescription,
-      checkoutRequestId: response.data?.checkoutRequestId
-    });
+    console.log('✓ STK Push initiated successfully!');
+    console.log('  Response Code:', response.data?.response?.ResponseCode);
+    console.log('  CheckoutRequestID:', response.data?.response?.CheckoutRequestID);
+    console.log('  Message:', response.data?.response?.CustomerMessage);
 
     res.json({
       success: true,
-      message: 'STK Push initiated. Check your phone for the payment prompt.',
-      checkoutRequestId: response.data?.checkoutRequestId,
-      responseCode: response.data?.responseCode
+      message: 'STK Push initiated successfully. Check your phone for the payment prompt.',
+      header: response.data?.header,
+      response: response.data?.response,
+      checkoutRequestId: response.data?.response?.CheckoutRequestID,
+      responseCode: response.data?.response?.ResponseCode
     });
 
   } catch (error) {
-    console.error('KCB Buni API Error:', {
+    console.error('❌ KCB Buni API Error:', {
       message: error.message,
       status: error.response?.status,
+      statusText: error.response?.statusText,
       data: error.response?.data,
-      config: error.config?.url
+      url: error.config?.url
     });
 
     res.status(error.response?.status || 500).json({ 
-      error: error.response?.data?.responseDescription || error.message || 'Failed to initiate payment. Please try again.',
+      success: false,
+      error: error.response?.data?.response?.CustomerMessage || 
+             error.response?.data?.message || 
+             error.message || 
+             'Failed to initiate payment. Please try again.',
+      code: error.response?.data?.response?.ResponseCode,
       details: process.env.ENVIRONMENT === 'development' ? error.message : undefined
     });
   }
@@ -174,7 +182,7 @@ app.post('/api/kcb-buni-callback', (req, res) => {
   try {
     const { status, orderRef, amount, transactionId, phoneNumber } = req.body;
 
-    console.log('KCB Buni Callback received:', {
+    console.log('📞 KCB Buni Callback received:', {
       status,
       orderRef,
       amount,
@@ -184,13 +192,8 @@ app.post('/api/kcb-buni-callback', (req, res) => {
     });
 
     if (status === 'SUCCESS') {
-      // TODO: Update your database with transaction details
-      // TODO: Send SMS confirmation to customer
-      // TODO: Update order status in your system
-      
       console.log(`✓ Payment successful - Order: ${orderRef}, Amount: ${amount}, Phone: ${phoneNumber}, TxID: ${transactionId}`);
       
-      // Log transaction (replace with database save)
       const fs = require('fs');
       fs.appendFileSync('transactions.log', JSON.stringify({
         status,
@@ -206,7 +209,6 @@ app.post('/api/kcb-buni-callback', (req, res) => {
       console.log(`⏳ Payment pending - Order: ${orderRef}, Phone: ${phoneNumber}`);
     }
 
-    // Acknowledge receipt of callback
     res.json({ 
       success: true,
       message: 'Callback received'
