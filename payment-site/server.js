@@ -85,7 +85,7 @@ async function getAccessToken(force = false) {
     try {
       const res = await axios.post(
         target.tokenUrl,
-        target.form ? 'grant_type=client_credentials' : null,
+        'grant_type=client_credentials',
         {
           headers: {
             Authorization: `Basic ${basic}`,
