@@ -46,10 +46,10 @@ const pinnedTarget = env('KCB_TOKEN_URL') && env('KCB_STK_URL')
 
 const UAT = env('KCB_ENV') === 'uat' || CONFIG.environment === 'uat';
 const TARGETS = pinnedTarget || (UAT
-  ? [{ name: 'uat', tokenUrl: 'https://uat.buni.kcbgroup.com/token?grant_type=client_credentials', stkUrl: 'https://uat.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush' }]
+  ? [{ name: 'uat', tokenUrl: 'https://uat.buni.kcbgroup.com/token', stkUrl: 'https://uat.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush' }]
   : [
-      { name: 'production (buni.kcbgroup.com)', tokenUrl: 'https://buni.kcbgroup.com/token?grant_type=client_credentials', stkUrl: 'https://buni.kcbgroup.com/mm/api/request/1.0.0/stkpush' },
-      { name: 'production (api.buni.kcbgroup.com)', tokenUrl: 'https://api.buni.kcbgroup.com/token?grant_type=client_credentials', stkUrl: 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush' },
+      { name: 'production (buni.kcbgroup.com)', tokenUrl: 'https://buni.kcbgroup.com/token', stkUrl: 'https://buni.kcbgroup.com/mm/api/request/1.0.0/stkpush' },
+      { name: 'production (api.buni.kcbgroup.com)', tokenUrl: 'https://api.buni.kcbgroup.com/token', stkUrl: 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush' },
       { name: 'production (oauth2)', tokenUrl: 'https://accounts.buni.kcbgroup.com/oauth2/token', stkUrl: 'https://buni.kcbgroup.com/mm/api/request/1.0.0/stkpush', form: true }
     ]);
 
