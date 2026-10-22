@@ -574,6 +574,113 @@ async function sendPasswordResetEmail(userEmail, token, req) {
   }
 }
 
+// ════════════════════════════════════════════════════════════════
+// CUSTOMER PAYMENT (No Login Required - Any Amount)
+// ════════════════════════════════════════════════════════════════
+
+// Generate KCB Buni token
+async function generateCustomerBuniToken() {
+  const clientId = process.env.BUNI_CLIENT_ID;
+  const clientSecret = process.env.BUNI_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Missing KCB Buni API credentials");
+  }
+
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+  try {
+    const response = await axios.post(
+      'https://api.buni.kcbgroup.com/token?grant_type=client_credentials',
+      {},
+      {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    return response.data.access_token;
+  } catch (err) {
+    console.error("KCB Buni Token Error: ", err.response?.data || err.message);
+    throw err;
+  }
+}
+
+// Customer Payment Endpoint (No login required)
+app.post('/customer-pay', async (req, res) => {
+  try {
+    let { phone, amount } = req.body;
+
+    if (!phone || !amount) {
+      return res.status(400).json({ success: false, message: 'Phone and amount are required.' });
+    }
+
+    // Normalize phone to 254XXXXXXXXX
+    phone = String(phone).replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '254' + phone.slice(1);
+    if (phone.startsWith('7') || phone.startsWith('1')) phone = '254' + phone;
+
+    console.log(`📱 Customer Payment - STK Push to ${phone} for KES ${amount}`);
+
+    // Get token
+    const token = await generateCustomerBuniToken();
+
+    const endpoint = 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush';
+    const tillNumber = process.env.BUNI_MERCHANT_CODE || '8125462';
+
+    const payload = {
+      phoneNumber: phone,
+      amount: String(amount),
+      invoiceNumber: tillNumber + '-CUSTOMER-' + Date.now(),
+      sharedShortCode: true,
+      orgShortCode: '',
+      orgPassKey: '',
+      callbackUrl: process.env.BUNI_CALLBACK_URL || process.env.BASE_URL + '/customer-callback',
+      transactionDescription: 'Customer Payment'
+    };
+
+    console.log('📦 Customer Payment Payload:', JSON.stringify(payload));
+
+    const stkRes = await axios.post(endpoint, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    res.json({ success: true, message: 'stk_sent' });
+  } catch (err) {
+    console.error("Customer Payment Error: ", err.response?.data || err.message);
+    res.status(500).json({
+      success: false,
+      message: `Payment initiation failed: ${err.response?.data?.message || err.message}`
+    });
+  }
+});
+
+// Customer Payment Callback (Simple logging)
+app.post('/customer-callback', async (req, res) => {
+  const payload = req.body;
+  console.log('💰 Customer Payment Callback:', JSON.stringify(payload));
+
+  const resultCode = payload?.Body?.stkCallback?.ResultCode ?? payload?.ResultCode ?? payload?.resultCode;
+
+  if (resultCode === 0 || resultCode === '0') {
+    console.log('✅ Customer payment confirmed');
+  } else {
+    console.log(`❌ Customer payment failed [ResultCode: ${resultCode}]`);
+  }
+
+  res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
+});
+
+// Serve customer-payment.html (no authentication required)
+app.get('/customer-payment.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'customer-payment.html'));
+});
+
 // Session teardown route
 app.get('/logout', (req, res) => {
   req.session.destroy((err) => {
