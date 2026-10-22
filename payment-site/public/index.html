@@ -227,14 +227,14 @@
         
         <!-- Info -->
         <div class="info-box">
-          🔒 Your payment is secure and encrypted. You will be redirected to complete the payment process.
+          🔒 Your payment is secure and encrypted. You will get an M-PESA prompt on your phone to enter your PIN.
         </div>
       </form>
       
       <!-- Loading State -->
       <div class="loading" id="loadingState">
         <div class="spinner"></div>
-        <p style="color: #666;">Preparing payment gateway...</p>
+        <p style="color: #666;" id="loadingText">Sending payment request...</p>
       </div>
       
       <!-- Success State -->
@@ -242,8 +242,8 @@
         <div class="success-icon">✓</div>
         <div class="success-title">Thank You!</div>
         <div class="success-text">
-          Your payment of KSh <span id="successAmount">500</span> has been processed successfully.<br>
-          A receipt has been sent to your email.
+          Your payment of KSh <span id="successAmount">500</span> has been received.<br>
+          <span id="successReceipt"></span>
         </div>
         <button class="btn btn-primary" onclick="location.reload()">Make Another Payment</button>
       </div>
@@ -262,6 +262,8 @@
     const loadingState = document.getElementById('loadingState');
     const successState = document.getElementById('successState');
     const successAmountSpan = document.getElementById('successAmount');
+    const successReceipt = document.getElementById('successReceipt');
+    const loadingText = document.getElementById('loadingText');
     
     // Handle amount input change
     amountInput.addEventListener('input', (e) => {
@@ -305,36 +307,49 @@
       payBtn.disabled = true;
       
       try {
-        // Call backend to generate KCB Buni checkout URL
-        const response = await fetch('/api/kcb-buni-checkout', {
+        const response = await fetch('/api/pay', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phoneNumber: phone,
-            amount: amount,
-            redirectUrl: window.location.href
-          })
+          body: JSON.stringify({ phoneNumber: phone, amount: amount })
         });
-        
         const data = await response.json();
-        
-        if (!response.ok || !data.checkoutUrl) {
+        if (!response.ok || !data.checkoutRequestId) {
           throw new Error(data.error || 'Failed to initiate payment');
         }
-        
-        // Redirect to KCB Buni checkout
-        window.location.href = data.checkoutUrl;
-        
+
+        loadingText.textContent = 'Check your phone and enter your M-PESA PIN to complete the payment...';
+        const result = await waitForResult(data.checkoutRequestId);
+
+        loadingState.style.display = 'none';
+        if (result.status === 'SUCCESS') {
+          successAmountSpan.textContent = parseInt(amount).toLocaleString();
+          successReceipt.textContent = result.receipt ? 'M-PESA receipt: ' + result.receipt : '';
+          successState.style.display = 'block';
+        } else {
+          throw new Error(result.message || 'Payment was not completed. Please try again.');
+        }
       } catch (error) {
         console.error('Payment error:', error);
         loadingState.style.display = 'none';
         form.style.display = 'block';
         payBtn.disabled = false;
-        
         amountError.textContent = error.message || 'Payment initiation failed. Please try again.';
         amountError.classList.add('show');
       }
     });
+
+    // Poll until the M-PESA callback reaches the server (max ~2 minutes)
+    async function waitForResult(id) {
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const r = await fetch('/api/payment-status/' + encodeURIComponent(id));
+          const d = await r.json();
+          if (d.status === 'SUCCESS' || d.status === 'FAILED') return d;
+        } catch (_) { /* keep polling */ }
+      }
+      return { status: 'FAILED', message: 'No confirmation received. If money was deducted, contact us with your M-PESA message.' };
+    }
   </script>
 </body>
 </html>
