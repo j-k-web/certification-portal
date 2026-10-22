@@ -134,8 +134,9 @@ app.post('/api/pay', async (req, res) => {
   if (!Number.isInteger(amount) || amount < 1) return res.status(400).json({ error: 'Amount must be at least 1' });
 
   const orderRef = `ORD-${Date.now()}`;
-  // Generate unique invoice number: timestamp + random suffix
-  const uniqueInvoice = `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  // Generate unique invoice number in KCB format: {merchantCode}-{randomCode}-{timestamp}
+  const randomCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+  const uniqueInvoice = `${CONFIG.invoiceNumber}-${randomCode}-${Date.now()}`;
   const body = {
     phoneNumber: phone,
     amount: String(amount),
