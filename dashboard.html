@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KALMOT Tech Academy — Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="top-nav">
+  <div class="nav-brand">
+    <div class="logo-sm">K</div>
+    <span>KALMOT Tech Academy</span>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <button class="nav-btn active" onclick="showPage('home')">🏠 Home</button>
+    <button class="nav-btn" onclick="showPage('courses')">📚 My Courses</button>
+    <button class="nav-btn" id="adminNavBtn" style="display:none" onclick="showPage('admin')">⚙️ Admin</button>
+  </div>
+  <div class="nav-right">
+    <span id="navName" style="color:var(--muted);font-size:13px;"></span>
+    <button class="logout-btn" onclick="window.location.href='/logout'">Sign Out</button>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- HOME PAGE -->
+  <div id="homePage">
+    <div class="card" style="margin-bottom:24px; background:linear-gradient(135deg,#0d0d22,#0a1a0a); border-color:var(--yellow);">
+      <h2 style="color:var(--yellow); font-size:24px; margin-bottom:8px;">Welcome to KALMOT Tech Academy 🎓</h2>
+      <p style="color:var(--muted); line-height:1.7;">Choose your course track below and start your 1-month intensive bootcamp. Pay a deposit of <strong style="color:var(--yellow)">KES 6,000</strong> to unlock Weeks 1 & 2, then complete the balance to access Weeks 3 & 4, the final project, and your certificate.</p>
+    </div>
+
+    <!-- Enrollment alert -->
+    <div id="enrollAlert"></div>
+
+    <!-- Bundle option -->
+    <div class="card" style="margin-bottom:24px; border-color:var(--maroon);">
+      <div class="card-title">🎯 Full Bundle — All 4 Tracks</div>
+      <p style="color:var(--muted); margin-bottom:16px; font-size:14px;">Enroll in all 4 tracks and save time. Pay <strong style="color:var(--yellow)">KES 24,000 deposit</strong> now, then KES 24,000 balance before Week 3.</p>
+      <button class="pay-btn" onclick="enrollBundle()" id="bundleBtn">Enroll in Full Bundle — KES 48,000 Total</button>
+    </div>
+
+    <!-- Track cards -->
+    <div class="tracks-grid" id="tracksGrid"></div>
+  </div>
+
+  <!-- COURSES PAGE -->
+  <div id="coursesPage" style="display:none;">
+    <div id="courseContent"></div>
+  </div>
+
+  <!-- ADMIN PAGE -->
+  <div id="adminPage" style="display:none;">
+    <div class="card-title" style="margin-bottom:20px;">⚙️ Admin Panel</div>
+
+    <!-- Upload Content -->
+    <div class="admin-panel">
+      <div class="admin-title">📤 Upload Course Content</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Track</label>
+          <select class="form-select" id="upTrack">
+            <option value="programming">Programming</option>
+            <option value="webtech">Web Technologies</option>
+            <option value="cybersecurity">Cybersecurity</option>
+            <option value="msoffice">Microsoft Office</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Week</label>
+          <select class="form-select" id="upWeek">
+            <option value="1">Week 1</option><option value="2">Week 2</option>
+            <option value="3">Week 3</option><option value="4">Week 4</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Day (1-5)</label>
+          <select class="form-select" id="upDay">
+            <option value="1">Day 1</option><option value="2">Day 2</option>
+            <option value="3">Day 3</option><option value="4">Day 4</option><option value="5">Day 5</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select class="form-select" id="upType" onchange="toggleUploadType()">
+            <option value="video">Video</option>
+            <option value="notes">Notes</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label>Title</label>
+          <input class="form-input" id="upTitle" placeholder="e.g. Introduction to Variables">
+        </div>
+      </div>
+      <!-- Video options -->
+      <div id="videoUpload">
+        <div class="form-row">
+          <div class="form-group" style="flex:2">
+            <label>YouTube URL (or upload MP4 below)</label>
+            <input class="form-input" id="upYoutube" placeholder="https://www.youtube.com/watch?v=...">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Or upload MP4 file</label>
+            <input type="file" id="upVideoFile" accept="video/*" class="form-input">
+          </div>
+        </div>
+      </div>
+      <!-- Notes options -->
+      <div id="notesUpload" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Upload PDF file</label>
+            <input type="file" id="upNotesFile" accept=".pdf,.doc,.docx" class="form-input">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex:2">
+            <label>Or type notes text directly</label>
+            <textarea class="form-input" id="upTextContent" rows="5" placeholder="Type your notes here..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div id="uploadMsg"></div>
+      <button class="upload-btn" onclick="uploadContent()">Upload Content</button>
+    </div>
+
+    <!-- Manage Content -->
+    <div class="admin-panel">
+      <div class="admin-title">📋 Manage Uploaded Content</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Filter Track</label>
+          <select class="form-select" id="filterTrack" onchange="loadAdminContent()">
+            <option value="">All Tracks</option>
+            <option value="programming">Programming</option>
+            <option value="webtech">Web Technologies</option>
+            <option value="cybersecurity">Cybersecurity</option>
+            <option value="msoffice">Microsoft Office</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Filter Week</label>
+          <select class="form-select" id="filterWeek" onchange="loadAdminContent()">
+            <option value="">All Weeks</option>
+            <option value="1">Week 1</option><option value="2">Week 2</option>
+            <option value="3">Week 3</option><option value="4">Week 4</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Track</th><th>Week</th><th>Day</th><th>Type</th><th>Title</th><th>Action</th></tr></thead>
+          <tbody id="contentTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="admin-panel">
+      <div class="admin-title">👥 Registered Students</div>
+      <div style="margin-bottom:14px; display:flex; gap:20px; flex-wrap:wrap;">
+        <div style="background:var(--dark2);padding:12px 20px;border-radius:8px;border:1px solid var(--border);">
+          Total <span id="statTotal" style="color:var(--yellow);font-weight:900;font-size:20px;display:block;">-</span>
+        </div>
+        <div style="background:var(--dark2);padding:12px 20px;border-radius:8px;border:1px solid var(--green);">
+          Paid <span id="statPaid" style="color:#6bff6b;font-weight:900;font-size:20px;display:block;">-</span>
+        </div>
+        <div style="background:var(--dark2);padding:12px 20px;border-radius:8px;border:1px solid var(--yellow);">
+          Revenue <span id="statRev" style="color:var(--yellow);font-weight:900;font-size:18px;display:block;">-</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Tracks</th><th>Total Paid</th><th>Action</th></tr></thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── State ──
+let currentUser = null;
+let currentTrack = null;
+let currentWeek = 1;
+let currentDay = 1;
+let timerInterval = null;
+let sessionMinutes = 0;
+
+const TRACKS = {
+  programming: { name: 'Programming', icon: '💻', price: 12000, deposit: 6000 },
+  webtech: { name: 'Web Technologies', icon: '🌐', price: 12000, deposit: 6000 },
+  cybersecurity: { name: 'Cybersecurity', icon: '🔐', price: 12000, deposit: 6000 },
+  msoffice: { name: 'Microsoft Office Package', icon: '📊', price: 12000, deposit: 6000 }
+};
+
+const WEEKS = {
+  programming: { 1:'Language Syntax & Logic', 2:'Data Structures & Git', 3:'OOP & File Handling', 4:'CLI Scripting & Capstone' },
+  webtech: { 1:'HTML5 & CSS3 Fundamentals', 2:'JavaScript & DOM', 3:'REST APIs & Fetch', 4:'Full-Stack Deployment' },
+  cybersecurity: { 1:'Networks & Linux CLI', 2:'Web Vulnerabilities & OWASP', 3:'Network Security & Scanning', 4:'Practical Security Audit' },
+  msoffice: { 1:'Microsoft Word Essentials', 2:'Microsoft Excel Fundamentals', 3:'Microsoft Access & Databases', 4:'Microsoft Publisher & Capstone' }
+};
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/user-info', { credentials:'include' });
+    if (!res.ok) { window.location.href = '/index.html'; return; }
+    currentUser = await res.json();
+    document.getElementById('navName').textContent = currentUser.fullname;
+    if (currentUser.isAdmin) document.getElementById('adminNavBtn').style.display = 'block';
+    renderTracks();
+    if (currentUser.isAdmin) { loadAdminContent(); loadAdminUsers(); }
+  } catch(e) { window.location.href = '/index.html'; }
+});
+
+function showPage(p) {
+  ['home','courses','admin'].forEach(n => {
+    document.getElementById(n+'Page').style.display = n===p ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ── TRACKS ──
+function renderTracks() {
+  const grid = document.getElementById('tracksGrid');
+  grid.innerHTML = '';
+  for (const [id, t] of Object.entries(TRACKS)) {
+    const p = currentUser.payments?.find(pay => pay.track === id);
+    let statusHTML = '';
+    if (!p) statusHTML = `<span class="track-status status-enroll">Click to Enroll</span>`;
+    else if (!p.depositPaid) statusHTML = `<span class="track-status status-pay">Pay Deposit — KES ${t.deposit.toLocaleString()}</span>`;
+    else if (!p.balancePaid) statusHTML = `<span class="track-status status-active">✅ Weeks 1-2 Active</span><br><span class="track-status status-pay" style="margin-top:6px;">Pay Balance — KES ${(t.price-t.deposit).toLocaleString()}</span>`;
+    else statusHTML = `<span class="track-status status-active">✅ Full Access</span>`;
+
+    grid.innerHTML += `
+      <div class="track-card ${p ? 'enrolled' : ''}" onclick="openTrack('${id}')">
+        <div class="track-icon">${t.icon}</div>
+        <div class="track-name">${t.name}</div>
+        <div class="track-price">KES ${t.price.toLocaleString()} / 1-Month</div>
+        ${statusHTML}
+      </div>`;
+  }
+}
+
+async function openTrack(trackId) {
+  currentTrack = trackId;
+  const p = currentUser.payments?.find(pay => pay.track === trackId);
+
+  showPage('courses');
+  document.querySelectorAll('.nav-btn')[1].classList.add('active');
+  document.querySelectorAll('.nav-btn')[0].classList.remove('active');
+
+  if (!p) { await enrollTrack(trackId); return; }
+  renderCourseView(trackId, p);
+}
+
+async function enrollTrack(trackId) {
+  const res = await fetch('/enroll', { method:'POST', headers:{'Content-Type':'application/json'},
+    credentials:'include', body: JSON.stringify({ tracks: trackId, isBundle: false }) });
+  const data = await res.json();
+  if (data.success) {
+    const ures = await fetch('/user-info', { credentials:'include' });
+    currentUser = await ures.json();
+    renderTracks();
+    const p = currentUser.payments?.find(pay => pay.track === trackId);
+    renderCourseView(trackId, p);
+  }
+}
+
+async function enrollBundle() {
+  const res = await fetch('/enroll', { method:'POST', headers:{'Content-Type':'application/json'},
+    credentials:'include', body: JSON.stringify({ isBundle: true }) });
+  const data = await res.json();
+  if (data.success) {
+    const ures = await fetch('/user-info', { credentials:'include' });
+    currentUser = await ures.json();
+    renderTracks();
+    document.getElementById('enrollAlert').innerHTML = '<div class="alert alert-success">✅ Enrolled in all 4 tracks! Pay your deposit to start.</div>';
+    setTimeout(() => document.getElementById('enrollAlert').innerHTML = '', 4000);
+  }
+}
+
+function renderCourseView(trackId, payment) {
+  const t = TRACKS[trackId];
+  const weeks = WEEKS[trackId];
+  const depPaid = payment?.depositPaid;
+  const balPaid = payment?.balancePaid;
+
+  // Check exam result
+  const examResult = currentUser.examResults?.find(r => r.track === trackId);
+
+  let html = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <span style="font-size:32px;">${t.icon}</span>
+      <div>
+        <h2 style="color:var(--yellow);font-size:20px;">${t.name}</h2>
+        <p style="color:var(--muted);font-size:13px;">1-Month Intensive Bootcamp</p>
+      </div>
+    </div>`;
+
+  // Session timer
+  html += `
+    <div class="session-timer" id="sessionTimerBox">
+      <span class="timer-icon">⏱️</span>
+      <div>
+        <div class="timer-text">Today's Study Session</div>
+        <div class="timer-count" id="timerDisplay">Loading...</div>
+      </div>
+      <div style="margin-left:auto;color:var(--muted);font-size:12px;">Sessions are recorded to track your progress</div>
+    </div>`;
+
+  // Payment block if needed
+  if (!depPaid) {
+    const amt = currentUser.isBundleStudent ? 24000 : t.deposit;
+    html += renderPaymentBlock(trackId, 'deposit', amt, 'Pay Deposit to Unlock Weeks 1 & 2');
+    html += '</div>';
+    document.getElementById('courseContent').innerHTML = html;
+    startTimer(trackId);
+    return;
+  }
+
+  // Week tabs
+  html += `<div class="week-tabs">`;
+  for (let w = 1; w <= 4; w++) {
+    const locked = w >= 3 && !balPaid;
+    html += `<div class="week-tab ${locked?'locked':''}" onclick="${locked?'promptBalance(\''+trackId+'\')':'selectWeek('+w+')'}" id="weekTab${w}">
+      Week ${w} — ${weeks[w]} ${locked?'🔒':''}
+    </div>`;
+  }
+  html += `</div>`;
+
+  // Balance payment prompt if week 3/4 locked
+  if (!balPaid) {
+    const amt2 = currentUser.isBundleStudent ? 24000 : (t.price - t.deposit);
+    html += `<div id="balancePayBlock">${renderPaymentBlock(trackId, 'balance', amt2, 'Pay Balance to Unlock Weeks 3 & 4')}</div>`;
+  }
+
+  // Day tabs
+  html += `<div class="day-tabs" id="dayTabs">`;
+  for (let d = 1; d <= 5; d++) {
+    html += `<div class="day-tab" onclick="selectDay(${d})" id="dayTab${d}">Day ${d}</div>`;
+  }
+  html += `</div>`;
+
+  // Content area
+  html += `<div id="contentArea"><div class="alert alert-info">Select a week and day to view content.</div></div>`;
+
+  // Exam block (after week 4 + full payment)
+  if (balPaid) {
+    html += `<div class="card" style="margin-top:24px;border-color:var(--maroon);">
+      <div class="card-title">📝 Final Exam</div>
+      <p style="color:var(--muted);margin-bottom:16px;font-size:14px;">Complete the final exam after finishing all 4 weeks. Score 50% or above to earn your certificate.</p>`;
+    if (examResult?.passed) {
+      html += `<div class="alert alert-success" style="margin-bottom:14px;">
+        ✅ Exam Passed! Score: ${examResult.score}/${examResult.total} (${Math.round((examResult.score/examResult.total)*100)}%)
+      </div>
+      <a href="/certificate/${trackId}" target="_blank">
+        <button class="pay-btn" style="background:linear-gradient(135deg,var(--green),var(--blue));">🎓 Download Certificate</button>
+      </a>`;
+    } else if (examResult && !examResult.passed) {
+      html += `<div class="alert alert-error" style="margin-bottom:14px;">
+        ❌ Exam failed. Score: ${examResult.score}/${examResult.total}. Try again.
+      </div>
+      <button class="pay-btn" onclick="loadExam('${trackId}')">Retake Exam</button>`;
+    } else {
+      html += `<button class="pay-btn" onclick="loadExam('${trackId}')">Take Final Exam</button>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('courseContent').innerHTML = html;
+  startTimer(trackId);
+  selectWeek(1);
+  selectDay(1);
+}
+
+function renderPaymentBlock(track, payType, amount, title) {
+  const label = payType === 'deposit' ? 'deposit' : 'balance';
+  return `
+    <div class="payment-box" style="margin-bottom:20px;">
+      <h3>${title}</h3>
+      <div class="payment-amount">KES ${amount.toLocaleString()}</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">Pay via M-PESA STK Push — enter your phone and complete payment on your phone.</p>
+      <button class="pay-btn" onclick="initPayment('${track}','${payType}',${amount})">Pay KES ${amount.toLocaleString()} via M-PESA</button>
+      <button onclick="window.location.reload()" style="margin-left:10px;padding:13px 18px;background:var(--dark2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;">🔄 Refresh</button>
+      <div id="payStatus_${track}_${payType}" style="margin-top:12px;"></div>
+      <div class="verify-box">
+        <p>Already paid? Enter your M-PESA confirmation code to unlock immediately:</p>
+        <div class="verify-row">
+          <input class="verify-input" id="mpesaCode_${track}_${payType}" placeholder="e.g. UHQDC4FLXC" maxlength="10">
+          <input class="verify-input" id="mpesaPhone_${track}_${payType}" placeholder="0712345678" style="text-transform:none;">
+          <button class="verify-btn" onclick="verifyMpesa('${track}','${payType}')">Verify & Unlock</button>
+        </div>
+        <div id="verifyStatus_${track}_${payType}" style="margin-top:8px;font-size:13px;"></div>
+      </div>
+    </div>`;
+}
+
+// ── PAYMENT ──
+async function initPayment(track, paymentType, amount) {
+  const phone = prompt(`Enter your M-PESA phone number (e.g. 0712345678) to pay KES ${amount.toLocaleString()}:`);
+  if (!phone) return;
+  const statusEl = document.getElementById(`payStatus_${track}_${paymentType}`);
+  statusEl.innerHTML = '<div class="alert alert-info">Sending STK Push...</div>';
+  try {
+    const res = await fetch('/pay', { method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'include', body: JSON.stringify({ phone, track, paymentType }) });
+    const data = await res.json();
+    if (!data.success) { statusEl.innerHTML = `<div class="alert alert-error">❌ ${data.message}</div>`; return; }
+    statusEl.innerHTML = '<div class="alert alert-info">📱 Check your phone and enter your M-PESA PIN to complete the payment.</div>';
+    document.getElementById(`mpesaPhone_${track}_${paymentType}`).value = phone;
+    let polls = 0;
+    const poll = async () => {
+      polls++;
+      if (polls > 36) { window.location.reload(); return; }
+      const r = await fetch(`/payment-status/${track}`, { credentials:'include' });
+      const d = await r.json();
+      const paid = paymentType === 'deposit' ? d.depositPaid : d.balancePaid;
+      if (paid) { statusEl.innerHTML = '<div class="alert alert-success">✅ Payment confirmed! Loading...</div>'; setTimeout(() => window.location.reload(), 1500); }
+      else setTimeout(poll, 5000);
+    };
+    setTimeout(poll, 12000);
+  } catch(e) { statusEl.innerHTML = '<div class="alert alert-error">❌ Payment failed. Try again.</div>'; }
+}
+
+async function verifyMpesa(track, paymentType) {
+  const code = document.getElementById(`mpesaCode_${track}_${paymentType}`).value.trim().toUpperCase();
+  const phone = document.getElementById(`mpesaPhone_${track}_${paymentType}`).value.trim();
+  const statusEl = document.getElementById(`verifyStatus_${track}_${paymentType}`);
+  if (!code || code.length !== 10) { statusEl.innerHTML = '<span style="color:#ff6b6b;">Enter a valid 10-character code.</span>'; return; }
+  if (!phone) { statusEl.innerHTML = '<span style="color:#ff6b6b;">Enter the phone number used.</span>'; return; }
+  statusEl.innerHTML = '<span style="color:var(--accent);">Verifying...</span>';
+  try {
+    const res = await fetch('/verify-mpesa', { method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'include', body: JSON.stringify({ mpesaCode: code, phone, email: currentUser.email, track, paymentType }) });
+    const data = await res.json();
+    if (data.success) { statusEl.innerHTML = '<span style="color:#6bff6b;">✅ Verified! Reloading...</span>'; setTimeout(() => window.location.reload(), 1200); }
+    else { statusEl.innerHTML = `<span style="color:#ff6b6b;">❌ ${data.message}</span>`; }
+  } catch(e) { statusEl.innerHTML = '<span style="color:#ff6b6b;">❌ Error. Try again.</span>'; }
+}
+
+function promptBalance(trackId) {
+  document.getElementById('balancePayBlock')?.scrollIntoView({ behavior:'smooth' });
+}
+
+// ── WEEK / DAY ──
+function selectWeek(w) {
+  currentWeek = w;
+  document.querySelectorAll('.week-tab').forEach((t,i) => t.classList.toggle('active', i+1===w));
+  selectDay(1);
+}
+
+function selectDay(d) {
+  currentDay = d;
+  document.querySelectorAll('.day-tab').forEach((t,i) => t.classList.toggle('active', i+1===d));
+  loadContent();
+}
+
+async function loadContent() {
+  const area = document.getElementById('contentArea');
+  if (!area) return;
+  area.innerHTML = '<div class="alert alert-info">Loading content...</div>';
+
+  // Check if week 3/4 requires balance
+  const p = currentUser.payments?.find(pay => pay.track === currentTrack);
+  if ((currentWeek === 3 || currentWeek === 4) && !p?.balancePaid && !currentUser.isAdmin) {
+    area.innerHTML = `<div class="alert alert-error">🔒 Weeks 3 & 4 require full payment. Please pay your balance above.</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`/content/${currentTrack}/${currentWeek}/${currentDay}`, { credentials:'include' });
+    const data = await res.json();
+    if (!data.success) { area.innerHTML = `<div class="alert alert-error">${data.message}</div>`; return; }
+    if (!data.data.length) {
+      area.innerHTML = `<div class="alert alert-info">📭 No content uploaded yet for Week ${currentWeek}, Day ${currentDay}. Check back soon.</div>`;
+      return;
+    }
+    area.innerHTML = `<h3 style="color:var(--yellow);margin-bottom:16px;">📅 Week ${currentWeek} — Day ${currentDay}</h3>`;
+    data.data.forEach(item => {
+      let contentHTML = '';
+      if (item.type === 'video') {
+        if (item.fileType === 'youtube') {
+          const ytId = extractYoutubeId(item.content);
+          contentHTML = `<iframe class="video-frame" src="https://www.youtube.com/embed/${ytId}" allowfullscreen></iframe>`;
+        } else {
+          contentHTML = `<video class="video-frame" controls style="width:100%;border-radius:8px;"><source src="${item.content}"></video>`;
+        }
+      } else if (item.type === 'notes') {
+        if (item.fileType === 'pdf') {
+          contentHTML = `<iframe class="pdf-frame" src="${item.content}"></iframe>`;
+        } else {
+          contentHTML = `<div class="notes-text">${item.content}</div>`;
+        }
+      }
+      area.innerHTML += `
+        <div class="content-block">
+          <div class="content-label">
+            <span class="label-badge ${item.type==='video'?'label-video':'label-notes'}">${item.type==='video'?'▶ VIDEO':'📄 NOTES'}</span>
+            <span class="content-title">${item.title}</span>
+          </div>
+          ${contentHTML}
+        </div>`;
+    });
+  } catch(e) { area.innerHTML = '<div class="alert alert-error">Error loading content.</div>'; }
+}
+
+function extractYoutubeId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([^&\n?#]+)/);
+  return m ? m[1] : url;
+}
+
+// ── SESSION TIMER ──
+function startTimer(trackId) {
+  if (timerInterval) clearInterval(timerInterval);
+  fetch(`/session/today/${trackId}`, { credentials:'include' })
+    .then(r => r.json()).then(d => {
+      sessionMinutes = d.minutesUsed || 0;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        sessionMinutes += (1/60);
+        updateTimerDisplay();
+        // Log every 5 minutes
+        if (Math.floor(sessionMinutes) % 5 === 0 && sessionMinutes > 0) {
+          fetch('/session/log', { method:'POST', headers:{'Content-Type':'application/json'},
+            credentials:'include', body: JSON.stringify({ track: trackId, minutes: 5 }) });
+        }
+      }, 1000);
+    });
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  if (!el) return;
+  const h = Math.floor(sessionMinutes / 60);
+  const m = Math.floor(sessionMinutes % 60);
+  const s = Math.floor((sessionMinutes * 60) % 60);
+  el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  if (sessionMinutes >= 120) el.style.color = '#ff6b6b';
+  else if (sessionMinutes >= 100) el.style.color = '#FFD700';
+}
+
+// ── EXAM ──
+async function loadExam(trackId) {
+  const area = document.getElementById('courseContent');
+  try {
+    const res = await fetch(`/exam/${trackId}`, { credentials:'include' });
+    const data = await res.json();
+    if (!data.success) { area.innerHTML += `<div class="alert alert-error">${data.message}</div>`; return; }
+    let html = `<div class="card" style="margin-top:20px;"><div class="card-title">📝 Final Exam — ${TRACKS[trackId].name}</div>
+      <p style="color:var(--muted);margin-bottom:20px;font-size:13px;">Answer all questions. Score 50% or above to pass and earn your certificate.</p>`;
+    data.data.forEach((q, i) => {
+      html += `<div class="question-block"><div class="question-text">${i+1}. ${q.question}</div>`;
+      q.options.forEach((opt, j) => {
+        html += `<label class="option-label"><input type="radio" name="q${i}" value="${j}"> ${opt}</label>`;
+      });
+      html += `</div>`;
+    });
+    html += `<button class="submit-exam-btn" onclick="submitExam('${trackId}',${data.data.length})">Submit Exam</button></div>`;
+    area.innerHTML = html;
+  } catch(e) { area.innerHTML += '<div class="alert alert-error">Error loading exam.</div>'; }
+}
+
+async function submitExam(trackId, total) {
+  const answers = [];
+  for (let i = 0; i < total; i++) {
+    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+    answers.push(sel ? parseInt(sel.value) : -1);
+  }
+  try {
+    const res = await fetch(`/exam/${trackId}/submit`, { method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'include', body: JSON.stringify({ answers }) });
+    const data = await res.json();
+    const ures = await fetch('/user-info', { credentials:'include' });
+    currentUser = await ures.json();
+    if (data.passed) {
+      document.getElementById('courseContent').innerHTML = `
+        <div class="card" style="text-align:center;padding:40px;border-color:var(--green);">
+          <div style="font-size:60px;margin-bottom:16px;">🎓</div>
+          <h2 style="color:var(--yellow);margin-bottom:8px;">Congratulations!</h2>
+          <p style="color:var(--text);margin-bottom:6px;">You passed with <strong style="color:#6bff6b;">${data.score}/${data.total} (${data.percentage}%)</strong></p>
+          <a href="/certificate/${trackId}" target="_blank">
+            <button class="pay-btn" style="background:linear-gradient(135deg,var(--green),var(--blue));margin-top:20px;">🎓 Download Certificate</button>
+          </a>
+        </div>`;
+    } else {
+      document.getElementById('courseContent').innerHTML = `
+        <div class="card" style="border-color:var(--maroon);">
+          <div class="alert alert-error">❌ You scored ${data.score}/${data.total} (${data.percentage}%). Minimum is 50%. Please review the material and try again.</div>
+          <button class="pay-btn" onclick="renderCourseView('${trackId}', currentUser.payments?.find(p=>p.track==='${trackId}'))" style="margin-top:16px;">Back to Course</button>
+        </div>`;
+    }
+  } catch(e) { alert('Error submitting exam.'); }
+}
+
+// ── ADMIN ──
+function toggleUploadType() {
+  const t = document.getElementById('upType').value;
+  document.getElementById('videoUpload').style.display = t==='video' ? 'block' : 'none';
+  document.getElementById('notesUpload').style.display = t==='notes' ? 'block' : 'none';
+}
+
+async function uploadContent() {
+  const form = new FormData();
+  form.append('track', document.getElementById('upTrack').value);
+  form.append('week', document.getElementById('upWeek').value);
+  form.append('day', document.getElementById('upDay').value);
+  form.append('title', document.getElementById('upTitle').value);
+  const type = document.getElementById('upType').value;
+  form.append('type', type);
+  if (type === 'video') {
+    const yt = document.getElementById('upYoutube').value;
+    if (yt) { form.append('youtubeUrl', yt); }
+    else {
+      const f = document.getElementById('upVideoFile').files[0];
+      if (f) form.append('file', f);
+    }
+  } else {
+    const f = document.getElementById('upNotesFile').files[0];
+    if (f) form.append('file', f);
+    else form.append('textContent', document.getElementById('upTextContent').value);
+  }
+  const msg = document.getElementById('uploadMsg');
+  msg.innerHTML = '<div class="alert alert-info">Uploading...</div>';
+  try {
+    const res = await fetch('/admin/content/upload', { method:'POST', credentials:'include', body: form });
+    const data = await res.json();
+    if (data.success) { msg.innerHTML = '<div class="alert alert-success">✅ Uploaded!</div>'; loadAdminContent(); }
+    else msg.innerHTML = `<div class="alert alert-error">❌ ${data.message}</div>`;
+  } catch(e) { msg.innerHTML = '<div class="alert alert-error">❌ Upload failed.</div>'; }
+}
+
+async function loadAdminContent() {
+  const track = document.getElementById('filterTrack')?.value || '';
+  const week = document.getElementById('filterWeek')?.value || '';
+  const res = await fetch(`/api/admin/content?track=${track}&week=${week}`, { credentials:'include' });
+  const data = await res.json();
+  const tb = document.getElementById('contentTable');
+  if (!tb) return;
+  tb.innerHTML = data.data?.map(c => `<tr>
+    <td>${TRACKS[c.track]?.name||c.track}</td><td>Week ${c.week}</td><td>Day ${c.day}</td>
+    <td><span class="badge ${c.type==='video'?'badge-partial':'badge-paid'}">${c.type}</span></td>
+    <td>${c.title}</td>
+    <td><button class="del-btn" onclick="deleteContent('${c._id}')">Delete</button></td>
+  </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);">No content uploaded yet.</td></tr>';
+}
+
+async function deleteContent(id) {
+  if (!confirm('Delete this content?')) return;
+  await fetch(`/admin/content/${id}`, { method:'DELETE', credentials:'include' });
+  loadAdminContent();
+}
+
+async function loadAdminUsers() {
+  const res = await fetch('/api/admin/users', { credentials:'include' });
+  const data = await res.json();
+  const users = data.data || [];
+  document.getElementById('statTotal').textContent = users.length;
+  let totalPaid = 0, paidCount = 0;
+  users.forEach(u => {
+    const tp = u.payments?.reduce((s,p) => s + (p.totalPaid||0), 0) || 0;
+    if (tp > 0) paidCount++;
+    totalPaid += tp;
+  });
+  document.getElementById('statPaid').textContent = paidCount;
+  document.getElementById('statRev').textContent = 'KES ' + totalPaid.toLocaleString();
+  const tb = document.getElementById('usersTable');
+  tb.innerHTML = users.map((u, i) => {
+    const tp = u.payments?.reduce((s,p) => s + (p.totalPaid||0), 0) || 0;
+    const tracks = u.enrolledTracks?.map(t => TRACKS[t]?.name||t).join(', ') || '—';
+    return `<tr>
+      <td>${i+1}</td><td><strong>${u.fullname}</strong></td><td>${u.email}</td>
+      <td>${u.phone||'—'}</td><td style="font-size:12px;">${tracks}</td>
+      <td><strong style="color:${tp>0?'#6bff6b':'var(--muted)'};">KES ${tp.toLocaleString()}</strong></td>
+      <td><button class="del-btn" onclick="deleteUser('${u._id}')">Delete</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);">No students yet.</td></tr>';
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete this student permanently?')) return;
+  await fetch(`/api/admin/users/${id}`, { method:'DELETE', credentials:'include' });
+  loadAdminUsers();
+}
+</script>
+</body>
+</html>

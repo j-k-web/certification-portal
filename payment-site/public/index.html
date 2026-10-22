@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Payment</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+      background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container { max-width: 500px; margin: 0 auto; }
+    
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #1a5c4f; font-size: 28px; margin-bottom: 5px; }
+    .header p { color: #666; font-size: 14px; }
+    .logo { font-size: 12px; color: #999; margin-top: 8px; }
+    
+    .payment-card { 
+      background: white; 
+      border-radius: 12px; 
+      padding: 24px; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #f0f0f0;
+    }
+    
+    .items-section { margin-bottom: 24px; }
+    .items-label { 
+      color: #1a5c4f; 
+      font-weight: 600; 
+      font-size: 14px; 
+      margin-bottom: 12px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+    }
+    
+    .item-option { 
+      display: flex; 
+      padding: 12px; 
+      border: 2px solid #ddd; 
+      border-radius: 8px; 
+      margin-bottom: 10px; 
+      cursor: pointer; 
+      transition: all 0.2s;
+    }
+    .item-option:hover { 
+      border-color: #d4a547; 
+      background: #fffef9; 
+    }
+    .item-option input[type="radio"] { 
+      margin-right: 12px; 
+      margin-top: 2px; 
+      cursor: pointer; 
+      accent-color: #d4a547;
+      width: 18px;
+      height: 18px;
+    }
+    .item-option.selected { 
+      border-color: #d4a547; 
+      background: #fffef9; 
+    }
+    
+    .item-details { flex: 1; }
+    .item-name { color: #333; font-weight: 500; margin-bottom: 2px; }
+    .item-desc { color: #999; font-size: 12px; }
+    .item-price { color: #1a5c4f; font-weight: 600; font-size: 16px; }
+    
+    .form-group { margin-bottom: 20px; }
+    .form-label { 
+      color: #1a5c4f; 
+      font-weight: 600; 
+      font-size: 14px; 
+      margin-bottom: 8px; 
+      display: block; 
+    }
+    
+    input[type="text"], input[type="email"] { 
+      width: 100%; 
+      padding: 12px; 
+      border: 1px solid #ddd; 
+      border-radius: 8px; 
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    input:focus { 
+      outline: none; 
+      border-color: #d4a547; 
+      box-shadow: 0 0 0 3px rgba(212, 165, 71, 0.1); 
+    }
+    input::placeholder { color: #ccc; }
+    
+    .amount-display { 
+      background: #f5f5f5; 
+      padding: 16px; 
+      border-radius: 8px; 
+      margin-bottom: 20px; 
+      text-align: center;
+      border: 1px solid #e0e0e0;
+    }
+    .amount-label { color: #999; font-size: 12px; margin-bottom: 4px; }
+    .amount-value { color: #1a5c4f; font-size: 32px; font-weight: 700; }
+    
+    .btn { 
+      width: 100%; 
+      padding: 14px; 
+      border: none; 
+      border-radius: 8px; 
+      font-size: 16px; 
+      font-weight: 600; 
+      cursor: pointer; 
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .btn-primary { 
+      background: #1a5c4f; 
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) { 
+      background: #134037; 
+      transform: translateY(-1px); 
+      box-shadow: 0 4px 12px rgba(26, 92, 79, 0.3); 
+    }
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .btn-primary:disabled { 
+      opacity: 0.6; 
+      cursor: not-allowed; 
+    }
+    
+    .success-state { display: none; text-align: center; }
+    .success-icon { font-size: 48px; margin-bottom: 16px; }
+    .success-title { color: #1a5c4f; font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+    .success-text { color: #666; margin-bottom: 24px; line-height: 1.6; }
+    
+    .error { 
+      color: #d32f2f; 
+      font-size: 13px; 
+      margin-top: 6px; 
+      display: none; 
+    }
+    .error.show { display: block; }
+    
+    .info-box { 
+      background: #e8f5e9; 
+      border-left: 4px solid #1a5c4f; 
+      padding: 12px; 
+      border-radius: 4px; 
+      font-size: 13px; 
+      color: #1a5c4f; 
+      margin-top: 20px;
+    }
+    
+    .loading { display: none; text-align: center; }
+    .spinner { 
+      border: 3px solid #f5f5f5; 
+      border-top: 3px solid #d4a547; 
+      border-radius: 50%; 
+      width: 32px; 
+      height: 32px; 
+      animation: spin 0.8s linear infinite; 
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
+
+    .required { color: #d32f2f; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Customer Payment</h1>
+      <p>Complete your payment securely and quickly</p>
+    </div>
+    
+    <div class="payment-card">
+      <form id="paymentForm">
+        <!-- Amount Input -->
+        <div class="form-group">
+          <label class="form-label">Amount (KSh) <span class="required">*</span></label>
+          <input 
+            type="number" 
+            id="amount" 
+            placeholder="e.g., 1000" 
+            min="1"
+            step="1"
+            required
+          >
+          <div class="error" id="amountError">Please enter a valid amount (minimum 1 KSh)</div>
+        </div>
+        
+        <!-- Amount Display -->
+        <div class="amount-display">
+          <div class="amount-label">Total Amount</div>
+          <div class="amount-value">KSh <span id="totalAmount">0</span></div>
+        </div>
+        
+        <!-- Phone Number -->
+        <div class="form-group">
+          <label class="form-label">Phone Number <span class="required">*</span></label>
+          <input 
+            type="tel" 
+            id="phoneNumber" 
+            placeholder="254712345678" 
+            pattern="^254[0-9]{9}$"
+            maxlength="12"
+            required
+          >
+          <div class="error" id="phoneError">Enter valid phone number (254XXXXXXXXX)</div>
+        </div>
+        
+        <!-- Payment Button -->
+        <button type="submit" class="btn btn-primary" id="payBtn">
+          Pay KSh <span id="payAmount">0</span>
+        </button>
+        
+        <!-- Info -->
+        <div class="info-box">
+          🔒 Your payment is secure and encrypted. You will get an M-PESA prompt on your phone to enter your PIN.
+        </div>
+      </form>
+      
+      <!-- Loading State -->
+      <div class="loading" id="loadingState">
+        <div class="spinner"></div>
+        <p style="color: #666;" id="loadingText">Sending payment request...</p>
+      </div>
+      
+      <!-- Success State -->
+      <div class="success-state" id="successState">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Thank You!</div>
+        <div class="success-text">
+          Your payment of KSh <span id="successAmount">500</span> has been received.<br>
+          <span id="successReceipt"></span>
+        </div>
+        <button class="btn btn-primary" onclick="location.reload()">Make Another Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('paymentForm');
+    const amountInput = document.getElementById('amount');
+    const phoneInput = document.getElementById('phoneNumber');
+    const amountError = document.getElementById('amountError');
+    const phoneError = document.getElementById('phoneError');
+    const totalAmountSpan = document.getElementById('totalAmount');
+    const payAmountSpan = document.getElementById('payAmount');
+    const payBtn = document.getElementById('payBtn');
+    const loadingState = document.getElementById('loadingState');
+    const successState = document.getElementById('successState');
+    const successAmountSpan = document.getElementById('successAmount');
+    const successReceipt = document.getElementById('successReceipt');
+    const loadingText = document.getElementById('loadingText');
+    
+    // Handle amount input change
+    amountInput.addEventListener('input', (e) => {
+      amountError.classList.remove('show');
+      const amount = parseInt(e.target.value) || 0;
+      totalAmountSpan.textContent = amount.toLocaleString();
+      payAmountSpan.textContent = amount.toLocaleString();
+    });
+    
+    // Clear phone error on input
+    phoneInput.addEventListener('input', () => {
+      phoneError.classList.remove('show');
+    });
+    
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const amount = amountInput.value.trim();
+      const phone = phoneInput.value.trim();
+      
+      let hasError = false;
+      
+      // Validate amount
+      if (!amount || parseInt(amount) < 1) {
+        amountError.classList.add('show');
+        hasError = true;
+      }
+      
+      // Validate phone
+      if (!phone || !/^254[0-9]{9}$/.test(phone)) {
+        phoneError.classList.add('show');
+        hasError = true;
+      }
+      
+      if (hasError) return;
+      
+      // Show loading state
+      form.style.display = 'none';
+      loadingState.style.display = 'block';
+      payBtn.disabled = true;
+      
+      try {
+        const response = await fetch('/api/pay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: phone, amount: amount })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.checkoutRequestId) {
+          throw new Error(data.error || 'Failed to initiate payment');
+        }
+
+        loadingText.textContent = 'Check your phone and enter your M-PESA PIN to complete the payment...';
+        const result = await waitForResult(data.checkoutRequestId);
+
+        loadingState.style.display = 'none';
+        if (result.status === 'SUCCESS') {
+          successAmountSpan.textContent = parseInt(amount).toLocaleString();
+          successReceipt.textContent = result.receipt ? 'M-PESA receipt: ' + result.receipt : '';
+          successState.style.display = 'block';
+        } else {
+          throw new Error(result.message || 'Payment was not completed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Payment error:', error);
+        loadingState.style.display = 'none';
+        form.style.display = 'block';
+        payBtn.disabled = false;
+        amountError.textContent = error.message || 'Payment initiation failed. Please try again.';
+        amountError.classList.add('show');
+      }
+    });
+
+    // Poll until the M-PESA callback reaches the server (max ~2 minutes)
+    async function waitForResult(id) {
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const r = await fetch('/api/payment-status/' + encodeURIComponent(id));
+          const d = await r.json();
+          if (d.status === 'SUCCESS' || d.status === 'FAILED') return d;
+        } catch (_) { /* keep polling */ }
+      }
+      return { status: 'FAILED', message: 'No confirmation received. If money was deducted, contact us with your M-PESA message.' };
+    }
+  </script>
+</body>
+</html>
