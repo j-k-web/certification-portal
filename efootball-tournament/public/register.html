@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register | eFootball Championship</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site">
+  <div class="container">
+    <a class="brand" href="index.html">eFoot<span>ball</span> Championship</a>
+    <nav class="site" id="nav"></nav>
+  </div>
+</header>
+
+<div class="reg-wrap">
+  <div class="auth-card">
+    <h1>Create your account</h1>
+    <p style="color:var(--muted)">Step 1 of 3. Create your account, then pay the entry fee.</p>
+    <form id="registerForm" novalidate>
+      <label for="name">Full name</label>
+      <input id="name" autocomplete="name" required>
+      <label for="phone">Phone number (M-Pesa)</label>
+      <input id="phone" type="tel" autocomplete="tel" placeholder="07XX XXX XXX" required>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" required>
+      <label for="password">Password (min 8 characters)</label>
+      <input id="password" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="confirm">Confirm password</label>
+      <input id="confirm" type="password" autocomplete="new-password" required>
+      <button class="btn" type="submit" id="submitBtn">Create account</button>
+    </form>
+    <div class="msg err" id="msg" hidden></div>
+    <p class="switch">Already registered? <a href="login.html">Log in</a></p>
+  </div>
+
+  <div>
+    <h2>Entry fee</h2>
+    <div class="pay-box" id="payBox">
+      <div class="row"><span>Amount</span><strong id="fee">KSh 200</strong></div>
+      <div class="row"><span>M-Pesa Paybill</span><strong id="paybill">Loading...</strong></div>
+      <div class="row"><span>Account number</span><strong id="account">Loading...</strong></div>
+      <div class="row"><span>Account name</span><strong id="name2">Loading...</strong></div>
+    </div>
+    <ol class="steps">
+      <li>Create your account (this form).</li>
+      <li>Pay the entry fee by M-Pesa using the details above.</li>
+      <li>Enter your M-Pesa confirmation code on the <a href="pay.html">payment page</a>.</li>
+      <li>The organiser confirms your payment and assigns your group.</li>
+    </ol>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+(async () => {
+  try {
+    const cfg = await api('/api/config');
+    document.getElementById('fee').textContent = `KSh ${cfg.fee}`;
+    document.getElementById('paybill').textContent = cfg.mpesa.paybill;
+    document.getElementById('account').textContent = cfg.mpesa.account;
+    document.getElementById('name2').textContent = cfg.mpesa.name;
+  } catch {}
+})();
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('submitBtn');
+  const v = (id) => document.getElementById(id).value.trim();
+  const password = document.getElementById('password').value;
+
+  if (password !== document.getElementById('confirm').value)
+    return showMsg(msg, 'Passwords do not match.');
+
+  btn.disabled = true;
+  try {
+    await api('/api/auth/register', {
+      method: 'POST',
+      body: { name: v('name'), phone: v('phone'), email: v('email'), password }
+    });
+    location.href = 'pay.html';
+  } catch (err) {
+    showMsg(msg, err.message);
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

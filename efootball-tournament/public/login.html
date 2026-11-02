@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in | eFootball Championship</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site">
+  <div class="container">
+    <a class="brand" href="index.html">eFoot<span>ball</span> Championship</a>
+    <nav class="site" id="nav"></nav>
+  </div>
+</header>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>Welcome back</h1>
+    <p style="color:var(--muted)">Log in to check your group, fixtures and results.</p>
+    <form id="loginForm" novalidate>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button class="btn" type="submit" id="submitBtn">Log in</button>
+    </form>
+    <div class="msg err" id="msg" hidden></div>
+    <p class="switch">New here? <a href="register.html">Create an account</a></p>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  try {
+    const { user } = await api('/api/auth/login', {
+      method: 'POST',
+      body: { email: document.getElementById('email').value, password: document.getElementById('password').value }
+    });
+    location.href = user.role === 'admin' ? 'admin.html' : 'tournament.html';
+  } catch (err) {
+    showMsg(msg, err.message);
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

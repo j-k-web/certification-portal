@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tournament | eFootball Championship</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site">
+  <div class="container">
+    <a class="brand" href="index.html">eFoot<span>ball</span> Championship</a>
+    <nav class="site" id="nav"></nav>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div id="countdown"></div>
+    <div id="myStatus"></div>
+    <h2>Tournament progress</h2>
+    <div class="table-wrap"><table id="progress"></table></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-stage="S1">Stage 1</button>
+      <button class="tab" data-stage="S2">Stage 2</button>
+      <button class="tab" data-stage="S3">Final pools</button>
+      <button class="tab" data-stage="KO">Knockout</button>
+      <button class="tab" data-stage="AW">Awards</button>
+    </div>
+    <div id="content"></div>
+  </div>
+</section>
+
+<script src="js/app.js"></script>
+<script>
+const LABELS = { S1: 'Stage 1', S2: 'Stage 2', S3: 'Final pools', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final' };
+let view = null;
+
+function pill(status) {
+  const cls = status === 'complete' ? '' : status === 'in progress' ? 'warn' : 'grey';
+  return `<span class="pill ${cls}">${esc(status)}</span>`;
+}
+
+function standingsTable(rows, qualify) {
+  if (!rows.length) return '<p class="empty">No results yet.</p>';
+  return `<div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+    <tbody>${rows.map((r, i) => `<tr class="${i < qualify ? 'qual' : ''}">
+      <td>${i + 1}</td><td>${esc(r.name)}</td><td>${r.played}</td><td>${r.won}</td><td>${r.drawn}</td>
+      <td>${r.lost}</td><td>${r.gd}</td><td><strong>${r.pts}</strong></td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function matchList(matches) {
+  if (!matches.length) return '<p class="empty">No fixtures yet.</p>';
+  return `<ul class="matches">${matches.map((m) => `<li>${esc(m.home)}
+    <span class="score">${m.played ? `${m.home_score} – ${m.away_score}` : 'vs'}</span>
+    ${esc(m.away)}</li>`).join('')}</ul>`;
+}
+
+function renderStage(stage) {
+  const groups = view.stages[stage];
+  const qualify = stage === 'S1' || stage === 'S2' ? 10 : 2;
+  if (!groups.length) return '<p class="empty">This stage has not started yet.</p>';
+  return groups.map((g) => `
+    <h3 class="pool-title">Group ${g.group}</h3>
+    ${g.pools.map((p) => `
+      <h4 style="margin:14px 0 4px;color:var(--muted)">Pool ${p.pool}</h4>
+      ${standingsTable(p.standings, stage === 'S1' || stage === 'S2' ? 2 : 2)}
+      ${matchList(p.matches)}`).join('')}`).join('');
+}
+
+function renderKnockout() {
+  const sections = ['QF', 'SF', 'F'].map((s) => {
+    const ms = view.knockout[s];
+    return `<h3 class="pool-title">${LABELS[s]}</h3>${matchList(ms)}`;
+  });
+  return sections.join('') || '<p class="empty">Knockout not started.</p>';
+}
+
+function renderAwards() {
+  const a = view.awards;
+  const list = (arr) => arr.length ? `<ul>${arr.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p class="empty">To be decided.</p>';
+  const groups = Object.entries(a.groupTopTen).map(([g, names]) =>
+    `<h3 class="pool-title">Group ${g}: top 10</h3>${list(names)}`).join('');
+  return `
+    <div class="grid">
+      <div class="card"><h3>Champion</h3><p>${a.champion ? esc(a.champion) : 'To be decided'}</p></div>
+      <div class="card"><h3>Runner-up</h3><p>${a.runnerUp ? esc(a.runnerUp) : 'To be decided'}</p></div>
+    </div>
+    <h3 class="pool-title">Round of 8</h3>${list(a.roundOf8)}
+    <h3 class="pool-title">Semi-finalists</h3>${list(a.semiFinalists)}
+    <h2 style="margin-top:34px">Group top 10 awards</h2>${groups}`;
+}
+
+function renderContent(tab) {
+  const el = document.getElementById('content');
+  if (tab === 'KO') el.innerHTML = renderKnockout();
+  else if (tab === 'AW') el.innerHTML = renderAwards();
+  else el.innerHTML = renderStage(tab);
+}
+
+document.getElementById('tabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === btn));
+  renderContent(btn.dataset.stage);
+});
+
+async function init() {
+  view = await api('/api/tournament');
+
+  document.getElementById('progress').innerHTML = `<tbody>${Object.keys(LABELS).map((s) =>
+    `<tr><td>${LABELS[s]}</td><td>${pill(view.progress[s])}</td></tr>`).join('')}</tbody>`;
+
+  renderContent('S1');
+
+  try {
+    const { user } = await api('/api/auth/me');
+    const status = !user.paid
+      ? '<span class="pill warn">Awaiting payment confirmation</span> <a class="btn small jungle" href="pay.html">Pay now</a>'
+      : user.status === 'eliminated' ? '<span class="pill grey">Eliminated</span>'
+      : user.status === 'champion' ? '<span class="pill">Champion</span>'
+      : `<span class="pill">Active: ${esc(LABELS[user.stage] || user.stage)}${user.group_no ? `, group ${user.group_no}` : ''}${user.pool_no ? `, pool ${user.pool_no}` : ''}</span>`;
+    document.getElementById('myStatus').innerHTML = `
+      <div class="status-card"><strong>Hello, ${esc(user.name)}.</strong><br>Your status: ${status}</div>`;
+  } catch {
+    document.getElementById('myStatus').innerHTML = `
+      <div class="status-card">Log in or <a href="register.html">register</a> to see your own group and fixtures.</div>`;
+  }
+}
+init().catch((err) => {
+  document.getElementById('content').innerHTML = `<div class="msg err">${esc(err.message)}</div>`;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin | eFootball Championship</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site">
+  <div class="container">
+    <a class="brand" href="index.html">eFoot<span>ball</span> Championship</a>
+    <nav class="site" id="nav"></nav>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="msg err" id="denied" hidden>Admins only. <a href="login.html">Log in as an admin</a>.</div>
+    <div id="panel" hidden>
+      <h1>Admin</h1>
+
+      <h2>Stages</h2>
+      <p>Advance runs the next step: start a stage, or move on once every match in the current stage has a result.</p>
+      <button class="btn jungle" id="advanceBtn">Advance tournament</button>
+      <div class="msg ok" id="advanceMsg" hidden></div>
+
+      <h2 style="margin-top:34px">Enter results</h2>
+      <p>Only knockout matches need a winner. Scores cannot be level in the knockout.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Stage</th><th>Home</th><th>Score</th><th>Away</th><th></th></tr></thead>
+        <tbody id="openMatches"></tbody>
+      </table></div>
+      <div class="msg err" id="resultMsg" hidden></div>
+
+      <h2 style="margin-top:34px">Players</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Phone</th><th>Paid</th><th>Ref</th><th>Stage</th><th></th></tr></thead>
+        <tbody id="players"></tbody>
+      </table></div>
+      <div class="msg err" id="playerMsg" hidden></div>
+    </div>
+  </div>
+</section>
+
+<script src="js/app.js"></script>
+<script>
+const LABELS = { S1: 'Stage 1', S2: 'Stage 2', S3: 'Final pools', QF: 'Quarter-final', SF: 'Semi-final', F: 'Final' };
+
+async function loadPlayers() {
+  const { users } = await api('/api/admin/users');
+  document.getElementById('players').innerHTML = users.map((u) => `
+    <tr>
+      <td>${esc(u.name)}<br><small>${esc(u.email)}</small></td>
+      <td>${esc(u.mpesa_phone || u.phone)}</td>
+      <td>${u.paid ? 'Yes' : 'No'}</td>
+      <td>${esc(u.payment_ref || '-')}</td>
+      <td>${u.paid ? esc(LABELS[u.stage] || u.stage) + ' ' + esc(u.status || '') : '-'}</td>
+      <td>${u.paid ? '' : `<button class="btn small jungle" data-confirm="${u.id}">Confirm payment</button>`}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="empty">No players yet.</td></tr>';
+}
+
+async function loadOpenMatches() {
+  const v = await api('/api/tournament');
+  const all = [
+    ...Object.values(v.stages).flat().flatMap((g) => g.pools.flatMap((p) => p.matches.map((m) => ({ ...m, stage: '' })))),
+    ...Object.entries(v.knockout).flatMap(([s, ms]) => ms.map((m) => ({ ...m, stage: s })))
+  ];
+  const open = all.filter((m) => !m.played);
+  document.getElementById('openMatches').innerHTML = open.slice(0, 200).map((m) => `
+    <tr>
+      <td>${esc(LABELS[m.stage] || 'Pool')}</td>
+      <td>${esc(m.home)}</td>
+      <td><input type="number" min="0" max="99" style="width:70px" id="h${m.id}"> –
+          <input type="number" min="0" max="99" style="width:70px" id="a${m.id}"></td>
+      <td>${esc(m.away)}</td>
+      <td><button class="btn small jungle" data-result="${m.id}">Save</button></td>
+    </tr>`).join('') || '<tr><td colspan="5" class="empty">No open matches.</td></tr>';
+}
+
+async function refresh() {
+  await Promise.all([loadPlayers(), loadOpenMatches()]);
+}
+
+document.addEventListener('click', async (e) => {
+  const confirmId = e.target.dataset.confirm;
+  const resultId = e.target.dataset.result;
+  const playerMsg = document.getElementById('playerMsg');
+  const resultMsg = document.getElementById('resultMsg');
+
+  try {
+    if (confirmId) {
+      const ref = prompt('Enter the M-Pesa confirmation code for this payment:');
+      if (!ref) return;
+      await api(`/api/admin/users/${confirmId}/confirm-payment`, { method: 'POST', body: { payment_ref: ref } });
+      showMsg(playerMsg, 'Payment confirmed.', true);
+      await refresh();
+    }
+    if (resultId) {
+      const h = document.getElementById('h' + resultId).value;
+      const a = document.getElementById('a' + resultId).value;
+      await api(`/api/admin/matches/${resultId}/result`, { method: 'POST', body: { home_score: h, away_score: a } });
+      showMsg(resultMsg, 'Result saved.', true);
+      await refresh();
+    }
+  } catch (err) {
+    showMsg(confirmId ? playerMsg : resultMsg, err.message);
+  }
+});
+
+document.getElementById('advanceBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('advanceMsg');
+  try {
+    const { message } = await api('/api/admin/advance', { method: 'POST' });
+    showMsg(msg, message, true);
+    await refresh();
+  } catch (err) {
+    showMsg(msg, err.message);
+  }
+});
+
+(async () => {
+  try {
+    const { user } = await api('/api/auth/me');
+    if (user.role !== 'admin') throw new Error('not admin');
+    document.getElementById('panel').hidden = false;
+    await refresh();
+  } catch {
+    document.getElementById('denied').hidden = false;
+  }
+})();
+</script>
+</body>
+</html>

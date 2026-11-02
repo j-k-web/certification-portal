@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pay | eFootball Championship</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site">
+  <div class="container">
+    <a class="brand" href="index.html">eFoot<span>ball</span> Championship</a>
+    <nav class="site" id="nav"></nav>
+  </div>
+</header>
+
+<div class="center-page">
+  <div class="auth-card" style="max-width:420px">
+    <h1>Pay</h1>
+
+    <div id="loginBox" hidden>
+      <a class="btn jungle" href="login.html" style="width:100%;text-align:center">Log in to pay</a>
+    </div>
+
+    <div id="paidBox" hidden>
+      <div class="msg ok">Payment received. You are registered.</div>
+      <a class="btn jungle" href="tournament.html" style="width:100%;text-align:center;margin-top:16px">View tournament</a>
+    </div>
+
+    <form id="payForm" novalidate hidden>
+      <input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="M-Pesa number (07... or 254...)" required>
+      <button class="btn" type="submit" id="payBtn" style="margin-top:16px">Pay</button>
+    </form>
+
+    <div class="msg ok" id="waitMsg" hidden>Check your phone and enter your M-Pesa PIN.</div>
+    <div class="msg err" id="msg" hidden></div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const PHONE_RE = /^(07|01)\d{8}$|^254[17]\d{8}$/;
+let pollTimer = null;
+
+async function loadAccount() {
+  let user;
+  try {
+    ({ user } = await api('/api/auth/me'));
+  } catch {
+    $('loginBox').hidden = false;
+    return;
+  }
+  if (user.paid) {
+    $('paidBox').hidden = false;
+    return;
+  }
+  $('payForm').hidden = false;
+  $('phone').value = user.mpesa_phone || user.phone || '';
+}
+
+function waitForPayment() {
+  let tries = 0;
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    tries++;
+    try {
+      const s = await api('/api/payments/buni/status');
+      if (s.paid) {
+        clearInterval(pollTimer);
+        $('payForm').hidden = true;
+        $('waitMsg').hidden = true;
+        $('paidBox').hidden = false;
+        return;
+      }
+      if (s.status === 'failed') {
+        clearInterval(pollTimer);
+        $('waitMsg').hidden = true;
+        showMsg($('msg'), 'Payment was not completed. Try again.');
+        $('payBtn').disabled = false;
+      }
+    } catch { /* keep polling */ }
+    if (tries >= 60) {
+      clearInterval(pollTimer);
+      $('waitMsg').hidden = true;
+      showMsg($('msg'), 'Payment not received yet. It will update automatically if you paid.');
+      $('payBtn').disabled = false;
+    }
+  }, 3000);
+}
+
+$('payForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('msg').hidden = true;
+  const phone = $('phone').value.replace(/[\s-]/g, '');
+  if (!PHONE_RE.test(phone))
+    return showMsg($('msg'), 'Enter a valid M-Pesa number, e.g. 0712345678 or 254712345678.');
+
+  $('payBtn').disabled = true;
+  try {
+    await api('/api/payments/buni/start', { method: 'POST', body: { mpesa_phone: phone } });
+    $('waitMsg').hidden = false;
+    waitForPayment();
+  } catch (err) {
+    showMsg($('msg'), err.message);
+    $('payBtn').disabled = false;
+  }
+});
+
+loadAccount();
+</script>
+</body>
+</html>
