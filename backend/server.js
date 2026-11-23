@@ -179,7 +179,7 @@ function ensureAuthApi(req, res, next) {
 const ADMIN_EMAIL = "joshuakalte088@gmail.com";
 const ADMIN_PASSWORD = "464455Jo@";
 // Programme the admin account previews on the dashboard
-const ADMIN_PREVIEW_PROGRAMME = 'Bachelor of Science in Information Technology';
+const ADMIN_PREVIEW_PROGRAMME = 'Bachelor of Education (Arts, with I.T.) - History & Kiswahili';
 
 function ensureAdmin(req, res, next) {
   if (req.session.user && (req.session.user.isAdmin || req.session.user.email === ADMIN_EMAIL)) {
