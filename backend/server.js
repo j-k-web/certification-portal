@@ -362,7 +362,7 @@ app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
         const payload = {
       phoneNumber: phone,
       amount: String(UNLOCK_FEE_KSH),
-      invoiceNumber: KCB_SHORTCODE + '-PAPERS-' + Date.now(),
+      invoiceNumber: `${KCB_SHORTCODE}-TMU papers ${Date.now().toString().slice(-6)}`,
       sharedShortCode: true,
       orgShortCode: '',
       orgPassKey: '',
