@@ -3,15 +3,31 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs'); // Encrypts passwords before database entry
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const PDFDocument = require('pdfkit');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const axios = require('axios');
-const User = require('./models/User'); 
+const User = require('./models/User');
+const { PROGRAMMES, findProgramme } = require('./data/programmes');
 
 const app = express();
+
+// Exam paper PDFs live here, named <unit id>.pdf (see papers/README.txt)
+const PAPERS_DIR = path.join(__dirname, 'papers');
+const UNLOCK_FEE_KSH = 500;
+
+// KCB Buni settings, read from Render. The older BUNI_* / KCB_BUNI_* names are still accepted as fallbacks.
+const KCB_CONSUMER_KEY = process.env.KCB_CLIENT_ID || process.env.BUNI_CLIENT_ID || process.env.KCB_BUNI_CONSUMER_KEY;
+const KCB_CONSUMER_SECRET = process.env.KCB_CLIENT_SECRET || process.env.BUNI_CLIENT_SECRET || process.env.KCB_BUNI_CONSUMER_SECRET;
+const KCB_SHORTCODE = process.env.KCB_BUNI_MERCHANT_CODE || process.env.BUNI_MERCHANT_CODE || process.env.KCB_BUNI_SHORTCODE || '8125462';
+const KCB_TOKEN_URL = process.env.KCB_TOKEN_URL || 'https://api.buni.kcbgroup.com/token?grant_type=client_credentials';
+const KCB_STK_URL = process.env.KCB_STK_URL || 'https://api.buni.kcbgroup.com/mm/api/request/1.0.0/stkpush';
+// KCB calls this after the student responds to the PIN prompt
+const KCB_CALLBACK_URL = process.env.BUNI_CALLBACK_URL || process.env.KCB_BUNI_CALLBACK_URL
+  || `${process.env.BASE_URL}/buni-callback`;
 
 // Render Reverse Proxy Trust (Crucial for secure session cookies on Render)
 app.set('trust proxy', 1);
@@ -20,20 +36,23 @@ app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Secure Session Handling
+// Secure Session Handling. Sessions are stored in MongoDB so they survive
+// Render restarts and redeploys.
 app.use(session({
   secret: process.env.SESSION_SECRET || 'a-solid-fallback-token-string',
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    collectionName: 'sessions',
+    ttl: 60 * 60 * 2 // seconds, matches cookie maxAge below
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production', // true if served over HTTPS on Render
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 2 // 2 Hours active session duration
   }
 }));
-
-// Serve static frontend files
-app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB Atlas connection
 mongoose.connect(process.env.MONGO_URI)
@@ -45,13 +64,22 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Programme list for the registration dropdown
+app.get('/api/programmes', (req, res) => {
+  res.json({ success: true, data: PROGRAMMES.map(p => ({ id: p.id, name: p.name })) });
+});
+
 // Secure Registration Route
 app.post('/register', async (req, res) => {
   const { fullname, phone, email, password, specialization } = req.body;
   try {
+    if (!findProgramme(specialization)) {
+      return res.status(400).json({ success: false, message: '⚠️ Please select a valid programme.' });
+    }
+
     const sanitizedEmail = email.toLowerCase().trim();
     const existingUser = await User.findOne({ email: sanitizedEmail });
-    
+
     if (existingUser) {
       return res.status(400).json({ success: false, message: '⚠️ User already registered with this email.' });
     }
@@ -60,12 +88,12 @@ app.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = new User({ 
-      fullname, 
-      phone, 
-      email: sanitizedEmail, 
-      password: hashedPassword, 
-      specialization 
+    const user = new User({
+      fullname,
+      phone,
+      email: sanitizedEmail,
+      password: hashedPassword,
+      specialization
     });
     await user.save();
 
@@ -91,7 +119,7 @@ app.post('/login', async (req, res) => {
       req.session.user = {
         id: 'admin',
         fullname: 'System Administrator',
-        specialization: 'Information Technology',
+        specialization: ADMIN_PREVIEW_PROGRAMME,
         email: ADMIN_EMAIL,
         paid: true,
         isAdmin: true
@@ -101,7 +129,7 @@ app.post('/login', async (req, res) => {
         success: true,
         message: '✅ Admin login successful',
         fullname: 'System Administrator',
-        specialization: 'Information Technology',
+        specialization: ADMIN_PREVIEW_PROGRAMME,
         isAdmin: true
       });
     }
@@ -118,7 +146,7 @@ app.post('/login', async (req, res) => {
       fullname: user.fullname,
       specialization: user.specialization,
       email: user.email,
-      paid: false,
+      paid: !!user.paid,
       isAdmin: false
     };
 
@@ -141,9 +169,17 @@ function ensureAuth(req, res, next) {
   res.redirect('/index.html');
 }
 
+// JSON version for API routes (returns 401 instead of redirecting)
+function ensureAuthApi(req, res, next) {
+  if (req.session.user) return next();
+  res.status(401).json({ success: false, message: '⚠️ Please log in first.' });
+}
+
 // 👑 STRICT ADMIN GUARD: Bound explicitly to your verified login details
-const ADMIN_EMAIL = "joshuakalte088@gmail.com"; 
+const ADMIN_EMAIL = "joshuakalte088@gmail.com";
 const ADMIN_PASSWORD = "464455Jo@";
+// Programme the admin account previews on the dashboard
+const ADMIN_PREVIEW_PROGRAMME = 'Bachelor of Science in Information Technology';
 
 function ensureAdmin(req, res, next) {
   if (req.session.user && (req.session.user.isAdmin || req.session.user.email === ADMIN_EMAIL)) {
@@ -172,7 +208,7 @@ app.get('/user-info', (req, res) => {
 app.get('/api/admin/users', ensureAdmin, async (req, res) => {
   try {
     // Exclude password field hashes from returning to the browser layout for security
-    const users = await User.find({}, '-password'); 
+    const users = await User.find({}, '-password');
     res.json({ success: true, data: users });
   } catch (err) {
     console.error("Admin Fetch Error: ", err);
@@ -194,109 +230,198 @@ app.delete('/api/admin/users/:id', ensureAdmin, async (req, res) => {
   }
 });
 
-// Helper Middleware: Generate Daraja OAuth access tokens on the fly
-async function generateMpesaToken(req, res, next) {
-  const secret = Buffer.from(`${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`).toString('base64');
+// Helpers for unit downloads
+function paperPath(unitId) {
+  return path.join(PAPERS_DIR, `${unitId}.pdf`);
+}
+
+function downloadName(unit) {
+  // Remove characters that are not allowed in file names
+  return `${unit.code} ${unit.title}`.replace(/[\\/:*?"<>|]/g, '-') + '.pdf';
+}
+
+// Loads the logged-in student's paid status and programme from the database
+// (admin accounts come from the session instead)
+async function getAccess(sessionUser) {
+  if (sessionUser.isAdmin) {
+    return { paid: true, fullname: sessionUser.fullname, specialization: sessionUser.specialization };
+  }
+  const user = await User.findById(sessionUser.id);
+  if (!user) return null;
+  return { paid: !!user.paid, fullname: user.fullname, specialization: user.specialization };
+}
+
+// The student's dashboard data: programme name, and units only once paid
+app.get('/api/programme', ensureAuthApi, async (req, res) => {
   try {
-    const response = await axios.get('https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials', {
-      headers: { Authorization: `Basic ${secret}` }
+    const access = await getAccess(req.session.user);
+    if (!access) return res.status(404).json({ success: false, message: '⚠️ Account not found.' });
+
+    const programme = findProgramme(access.specialization);
+    const units = (access.paid && programme ? programme.units : []).map(u => ({
+      id: u.id,
+      code: u.code,
+      title: u.title,
+      filename: downloadName(u),
+      available: fs.existsSync(paperPath(u.id)),
+      url: `/papers/${u.id}`
+    }));
+
+    res.json({
+      success: true,
+      fullname: access.fullname,
+      specialization: access.specialization,
+      programme: programme ? programme.name : null,
+      paid: access.paid,
+      unlockFee: UNLOCK_FEE_KSH,
+      units
     });
-    req.mpesaToken = response.data.access_token;
+  } catch (err) {
+    console.error("Programme Fetch Error: ", err);
+    res.status(500).json({ success: false, message: '❌ Could not load your units.' });
+  }
+});
+
+// Download one exam paper as PDF (only for paid students, only their own programme's units)
+app.get('/papers/:id', ensureAuthApi, async (req, res) => {
+  try {
+    const access = await getAccess(req.session.user);
+    if (!access) return res.status(404).json({ success: false, message: '⚠️ Account not found.' });
+    if (!access.paid) {
+      return res.status(402).json({ success: false, message: `⚠️ Pay Ksh ${UNLOCK_FEE_KSH} to unlock your exam papers.` });
+    }
+
+    const programme = findProgramme(access.specialization);
+    const unit = programme && programme.units.find(u => u.id === req.params.id);
+    if (!unit) {
+      return res.status(404).json({ success: false, message: '⚠️ That unit is not in your programme.' });
+    }
+
+    const file = paperPath(unit.id);
+    if (!fs.existsSync(file)) {
+      return res.status(404).json({ success: false, message: '⚠️ This exam paper is not available yet.' });
+    }
+
+    res.download(file, downloadName(unit));
+  } catch (err) {
+    console.error("Paper Download Error: ", err);
+    res.status(500).json({ success: false, message: '❌ Could not download the paper.' });
+  }
+});
+
+// Helper Middleware: Generate KCB Buni OAuth access token (LIVE PRODUCTION)
+async function generateBuniToken(req, res, next) {
+  if (!KCB_CONSUMER_KEY || !KCB_CONSUMER_SECRET) {
+    return res.status(500).json({ success: false, message: "❌ Missing KCB Buni API credentials in environment variables." });
+  }
+
+  const credentials = Buffer.from(`${KCB_CONSUMER_KEY}:${KCB_CONSUMER_SECRET}`).toString('base64');
+
+  try {
+    const response = await axios.post(
+      KCB_TOKEN_URL,
+      {},
+      {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    req.buniToken = response.data.access_token;
     next();
   } catch (err) {
-    console.error("Daraja Token Handshake Error: ", err.response?.data || err.message);
-    res.status(500).json({ success: false, message: "❌ Failed to generate Daraja token." });
+    console.error("KCB Buni Token Error: ", err.response?.data || err.message);
+    res.status(500).json({ success: false, message: "❌ Failed to generate KCB Buni token." });
   }
 }
 
-// Production-ready M-Pesa STK Push Trigger
-app.post('/pay', ensureAuth, generateMpesaToken, async (req, res) => {
-  let { phone } = req.body;
-
+// KCB Buni STK Push: Ksh 500 unlocks the student's exam papers
+app.post('/pay', ensureAuth, generateBuniToken, async (req, res) => {
   if (req.session.user.isAdmin) {
-    req.session.user.paid = true;
-    return res.json({ success: true, message: '✅ Admin access bypasses payment and certificate unlock flow.' });
+    return res.json({ success: true, message: 'Admin access granted.' });
   }
 
-  // Formatting utility to transform standard numbers into 254XXXXXXXX format
-  if (phone.startsWith('0')) phone = '254' + phone.slice(1);
-  if (phone.startsWith('+')) phone = phone.slice(1);
-
-  const endpoint = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
-  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
-  const password = Buffer.from(`${process.env.MPESA_SHORTCODE}${process.env.MPESA_PASSKEY}${timestamp}`).toString('base64');
-
   try {
-    await axios.post(endpoint, {
-      BusinessShortCode: process.env.MPESA_SHORTCODE,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
-      Amount: 200, 
-      PartyA: phone,
-      PartyB: process.env.MPESA_SHORTCODE,
-      PhoneNumber: phone,
-      CallBackURL: process.env.MPESA_CALLBACK_URL,
-      AccountReference: "CertAppBilling",
-      TransactionDesc: "Certification Access Fees"
-    }, {
-      headers: { Authorization: `Bearer ${req.mpesaToken}` }
+    const user = await User.findById(req.session.user.id);
+    if (!user) return res.status(404).json({ success: false, message: '⚠️ Account not found.' });
+    if (user.paid) {
+      return res.json({ success: true, message: 'already_paid' });
+    }
+
+    // Normalize phone to 254XXXXXXXXX for KCB Buni
+    let phone = String(req.body.phone || '').replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '254' + phone.slice(1);
+    if (phone.startsWith('7') || phone.startsWith('1')) phone = '254' + phone;
+    if (!/^254\d{9}$/.test(phone)) {
+      return res.status(400).json({ success: false, message: '⚠️ Enter a valid Safaricom number, e.g. 0712345678.' });
+    }
+    console.log('📱 Sending STK Push to phone:', phone);
+
+        const payload = {
+      phoneNumber: phone,
+      amount: String(UNLOCK_FEE_KSH),
+      invoiceNumber: KCB_SHORTCODE + '-PAPERS-' + Date.now(),
+      sharedShortCode: true,
+      orgShortCode: '',
+      orgPassKey: '',
+      callbackUrl: KCB_CALLBACK_URL,
+      transactionDescription: 'Exam Papers Unlock Fee'
+    };
+
+    const stkRes = await axios.post(KCB_STK_URL, payload, {
+      headers: {
+        Authorization: `Bearer ${req.buniToken}`,
+        'Content-Type': 'application/json'
+      }
     });
 
-    req.session.user.paid = true;
-
-    res.json({ success: true, message: "📲 STK Push dispatched successfully. Provide your PIN." });
-  } catch (err) {
-    console.error("STK Push Execution Error: ", err.response?.data || err.message);
-    res.status(500).json({ success: false, message: "❌ M-Pesa initialization collapsed." });
-  }
-});
-
-// Safaricom Webhook Processing Endpoint
-app.post('/mpesa-callback', (req, res) => {
-  const { Body } = req.body;
-  if (!Body || !Body.stkCallback) return res.status(400).send("Invalid format payload structure.");
-
-  const callbackData = Body.stkCallback;
-  if (callbackData.ResultCode === 0) {
-    console.log("💰 M-Pesa checkout completed successfully:", callbackData.CheckoutRequestID);
-  } else {
-    console.log(`❌ Payment declined by consumer [Code ${callbackData.ResultCode}]`);
-  }
-  res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
-});
-
-// Safe PDF Layout Generator Route
-app.get('/certificate', (req, res) => {
-  if (!req.session.user) return res.status(401).send("⚠️ Not logged in.");
-  if (!req.session.user.paid && !req.session.user.isAdmin) return res.status(402).send("⚠️ Please pay Ksh 200 to unlock certificate."); 
-
-  const { fullname, specialization } = req.session.user;
-  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  try {
-    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 });
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=certificate.pdf');
-    doc.pipe(res);
-
-    doc.image(path.join(__dirname, 'assets/certbackground.png'),
-      0, 0, { width: doc.page.width, height: doc.page.height });
-
-    doc.font('Times-Roman').fillColor('black');
-    doc.fontSize(22).text(fullname, 0, 260, { align: 'center', underline: true });
-    doc.fontSize(16).text("has successfully completed the training and assessment in", 0, 300, { align: 'center' });
-    doc.fontSize(20).text(specialization.toUpperCase(), 0, 330, { align: 'center' });
-    doc.fontSize(14).text("and attained a passing score of 50% or higher.", 0, 360, { align: 'center' });
-    doc.fontSize(12).text(`Awarded this ${date}`, 0, 400, { align: 'center' });
-
-    doc.end();
-  } catch (pdfError) {
-    console.error("PDF Compiling Fault: ", pdfError);
-    if (!res.headersSent) {
-      res.status(500).send("❌ System failed to generate asset configurations.");
+    // Save CheckoutRequestID to the user so the callback can match and unlock.
+    // Paid status is set only when KCB confirms the payment (see /buni-callback).
+    const checkoutID = stkRes.data?.response?.CheckoutRequestID;
+    if (!checkoutID) {
+      console.error("KCB STK Push returned no CheckoutRequestID: ", JSON.stringify(stkRes.data));
+      return res.status(500).json({ success: false, message: '❌ Payment could not be started. Please try again.' });
     }
+    await User.updateOne({ _id: user._id }, { $set: { buniCheckoutID: checkoutID } });
+
+    res.json({ success: true, message: 'stk_sent' });
+  } catch (err) {
+    console.error("KCB Buni STK Push Error: ", err.response?.data || err.message);
+    res.status(500).json({
+      success: false,
+      message: `❌ Payment initiation failed: ${err.response?.data?.message || err.message}`
+    });
   }
+});
+
+// KCB Buni Payment Callback: unlocks only the student whose saved CheckoutRequestID matches
+app.post('/buni-callback', async (req, res) => {
+  const payload = req.body;
+  console.log('💰 KCB Buni callback received:', JSON.stringify(payload));
+
+  const resultCode = payload?.Body?.stkCallback?.ResultCode ?? payload?.ResultCode ?? payload?.resultCode;
+  const checkoutID = payload?.Body?.stkCallback?.CheckoutRequestID || payload?.CheckoutRequestID;
+
+  if ((resultCode === 0 || resultCode === '0') && checkoutID) {
+    try {
+      const user = await User.findOneAndUpdate(
+        { buniCheckoutID: checkoutID },
+        { paid: true, paidAt: new Date() },
+        { new: true }
+      );
+      if (user) console.log(`✅ Unlocked exam papers for ${user.email}`);
+      else console.log(`⚠️ Payment confirmed but no user has CheckoutRequestID ${checkoutID}`);
+    } catch (err) {
+      console.error('DB update error on callback:', err.message);
+    }
+  } else {
+    console.log(`❌ Payment failed or cancelled [ResultCode: ${resultCode}]`);
+  }
+
+  // Always acknowledge so KCB does not keep retrying
+  res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
 });
 
 // Password Reset Request Handler
@@ -426,10 +551,14 @@ async function sendPasswordResetEmail(userEmail, token, req) {
 app.get('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) console.error("Error breaking active sessions down:", err);
-    res.clearCookie('connect.sid'); 
+    res.clearCookie('connect.sid');
     res.redirect('/index.html');
   });
 });
+
+// Serve static frontend files (after the protected routes above, so
+// dashboard.html and user.html cannot be opened without the login checks)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Start Server Loop
 const PORT = process.env.PORT || 3000;

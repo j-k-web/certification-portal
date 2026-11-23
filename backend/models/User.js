@@ -6,6 +6,9 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   specialization: { type: String, required: true },
+  paid: { type: Boolean, default: false },
+  paidAt: { type: Date, default: null },
+  buniCheckoutID: { type: String, default: null }, // KCB STK push id, used to match the callback
   resetPasswordToken: { type: String, default: null },
   resetPasswordExpires: { type: Date, default: null }
 });
