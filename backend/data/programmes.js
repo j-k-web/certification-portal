@@ -5,6 +5,13 @@ const UCI101 = { id: 'UCI101', code: 'UCI 101', title: 'Fundamentals of Informat
 const ESE110 = { id: 'ESE110', code: 'ESE 110', title: 'Introduction to Special Needs Education' };
 const EPY110 = { id: 'EPY110', code: 'EPY 110', title: 'Introduction to Educational Psychology' };
 
+const CIT201 = { id: 'CIT201', code: 'CIT 201', title: 'Object Oriented Programming II' };
+const CIT203 = { id: 'CIT203', code: 'CIT 203', title: 'Data Structures and Algorithms' };
+const CIT205 = { id: 'CIT205', code: 'CIT 205', title: 'Computer Networks' };
+const CIT211 = { id: 'CIT211', code: 'CIT 211', title: 'Event Driven Programming' };
+const CIT213 = { id: 'CIT213', code: 'CIT 213', title: 'Computer Networks Lab 1' };
+const CIT215 = { id: 'CIT215', code: 'CIT 215', title: 'Database Systems' };
+
 const PROGRAMMES = [
   {
     id: 'bed-arts-history-kiswahili',
@@ -85,6 +92,11 @@ const PROGRAMMES = [
     id: 'bed-sci-biology-geography',
     name: 'Bachelor of Education (Science & Agriculture, with I.T.) - Biology & Geography',
     units: [UCI101, ESE110, EPY110],
+  },
+  {
+    id: 'bsc-it-year-2',
+    name: 'Bachelor of Science in Information Technology (Year 2)',
+    units: [CIT201, CIT203, CIT205, CIT211, CIT213, CIT215],
   },
 ];
 
