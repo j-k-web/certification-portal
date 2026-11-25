@@ -12,6 +12,8 @@ const MongoStore = require('connect-mongo');
 const axios = require('axios');
 const User = require('./models/User');
 const { PROGRAMMES, findProgramme } = require('./data/programmes');
+// Every unit across all programmes, without duplicates (admin preview)
+const ALL_UNITS = [...new Map(PROGRAMMES.flatMap(p => p.units).map(u => [u.id, u])).values()];
 
 const app = express();
 
@@ -244,7 +246,7 @@ function downloadName(unit) {
 // (admin accounts come from the session instead)
 async function getAccess(sessionUser) {
   if (sessionUser.isAdmin) {
-    return { paid: true, fullname: sessionUser.fullname, specialization: sessionUser.specialization };
+    return { paid: true, isAdmin: true, fullname: sessionUser.fullname, specialization: sessionUser.specialization };
   }
   const user = await User.findById(sessionUser.id);
   if (!user) return null;
@@ -258,7 +260,8 @@ app.get('/api/programme', ensureAuthApi, async (req, res) => {
     if (!access) return res.status(404).json({ success: false, message: '⚠️ Account not found.' });
 
     const programme = findProgramme(access.specialization);
-    const units = (access.paid && programme ? programme.units : []).map(u => ({
+    const unitList = access.isAdmin ? ALL_UNITS : (programme ? programme.units : []);
+    const units = (access.paid ? unitList : []).map(u => ({
       id: u.id,
       code: u.code,
       title: u.title,
@@ -271,7 +274,7 @@ app.get('/api/programme', ensureAuthApi, async (req, res) => {
       success: true,
       fullname: access.fullname,
       specialization: access.specialization,
-      programme: programme ? programme.name : null,
+      programme: access.isAdmin ? 'All programmes (admin view)' : (programme ? programme.name : null),
       paid: access.paid,
       unlockFee: UNLOCK_FEE_KSH,
       units
@@ -292,7 +295,8 @@ app.get('/papers/:id', ensureAuthApi, async (req, res) => {
     }
 
     const programme = findProgramme(access.specialization);
-    const unit = programme && programme.units.find(u => u.id === req.params.id);
+    const unitList = access.isAdmin ? ALL_UNITS : (programme ? programme.units : []);
+    const unit = unitList.find(u => u.id === req.params.id);
     if (!unit) {
       return res.status(404).json({ success: false, message: '⚠️ That unit is not in your programme.' });
     }
